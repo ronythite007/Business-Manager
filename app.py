@@ -346,6 +346,7 @@ def delete_project(project_id):
 
 @app.route('/payment/edit/<int:payment_id>', methods=['GET', 'POST'])
 @login_required
+
 def edit_payment(payment_id):
     # Ensure only the owner (user_id) can edit the payment (and thus add payments only to their own projects)
     conn = get_sql_connection()
@@ -528,6 +529,32 @@ def logout():
     session.clear()
     flash('Logged out successfully.', 'info')
     return redirect(url_for('login'))
+
+@app.route('/payment/delete/<int:payment_id>')
+@login_required
+
+def delete_payment(payment_id):
+    # Ensure only the owner (user_id) can delete the payment
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('''
+        SELECT pay.project_id, p.user_id
+        FROM payments pay
+        JOIN projects p ON pay.project_id = p.id
+        WHERE pay.id = %s
+    ''', (payment_id,))
+    result = cursor.fetchone()
+    if not result or result['user_id'] != session.get('user_id'):
+        cursor.close()
+        flash('You do not have permission to delete this payment.', 'danger')
+        return redirect(url_for('index'))
+    project_id = result['project_id']
+    # Now delete the payment
+    cursor.execute('DELETE FROM payments WHERE id = %s', (payment_id,))
+    conn.commit()
+    cursor.close()
+    flash('Payment deleted successfully.', 'success')
+    return redirect(url_for('view_project', project_id=project_id))
 
 if __name__ == '__main__':
     app.run(debug=True)
