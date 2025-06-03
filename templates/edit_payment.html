@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Payment</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <h2>Edit Payment</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label class="form-label">Type</label>
+        <select name="type" class="form-select" required>
+          <option value="IN" {% if payment.type == 'IN' %}selected{% endif %}>IN (Received)</option>
+          <option value="OUT" {% if payment.type == 'OUT' %}selected{% endif %}>OUT (Paid)</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Amount</label>
+        <input type="number" name="amount" class="form-control" value="{{ payment.amount }}" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Person Name</label>
+        <input type="text" name="person_name" class="form-control" value="{{ payment.person_name }}" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Contact Info</label>
+        <input type="text" name="contact_info" class="form-control" value="{{ payment.contact_info }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Date</label>
+        <input type="date" name="date" class="form-control" value="{{ payment.date }}" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Reason</label>
+        <textarea name="reason" class="form-control">{{ payment.reason }}</textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Payment Method</label>
+        <select name="payment_method" class="form-select" required>
+          <option value="Cash" {% if payment.payment_method == 'Cash' %}selected{% endif %}>Cash</option>
+          <option value="Bank Transfer" {% if payment.payment_method == 'Bank Transfer' %}selected{% endif %}>Bank Transfer</option>
+          <option value="Online" {% if payment.payment_method == 'Online' %}selected{% endif %}>Online</option>
+          <option value="Cheque" {% if payment.payment_method == 'Cheque' %}selected{% endif %}>Cheque</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Replace File (optional)</label>
+        <input type="file" name="file" class="form-control">
+
+        {% if payment.file_path %}
+          <p class="mt-2">
+            Current File: <a href="/{{ payment.file_path }}" target="_blank">View</a><br>
+            <input type="checkbox" name="delete_file" value="yes"> Delete existing file
+          </p>
+        {% else %}
+          <p class="mt-2 text-muted">No file uploaded.</p>
+        {% endif %}
+      </div>
+
+
+      <button type="submit" class="btn btn-primary">Update Payment</button>
+      <a href="/project/{{ payment.project_id }}" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Business Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    h2 {
+      font-weight: 700;
+      color: #343a40;
+      letter-spacing: 0.03em;
+    }
+    h4 {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 1rem;
+      margin-top: 3rem;
+      border-bottom: 2px solid #dee2e6;
+      padding-bottom: 0.25rem;
+    }
+    canvas {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgb(0 0 0 / 0.1);
+      padding: 1rem;
+    }
+    .btn-secondary {
+      margin-top: 3rem;
+      padding: 0.5rem 1.5rem;
+      font-weight: 600;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgb(0 0 0 / 0.1);
+    }
+    .container {
+      max-width: 900px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <h2 class="mb-3">📊 Business Insights Dashboard</h2>
+
+    <!-- IN vs OUT Pie -->
+    <h4>Total IN vs OUT</h4>
+    <canvas id="inOutChart" height="130"></canvas>
+
+    <!-- Monthly Volume Bar -->
+    <h4>Monthly Transaction Volume</h4>
+    <canvas id="volumeChart" height="130"></canvas>
+
+    <!-- Line Chart: Cash Flow -->
+    <h4>Cash Flow Over Time</h4>
+    <canvas id="cashFlowChart" height="130"></canvas>
+
+    <!-- Project-wise IN/OUT -->
+    <h4>Project-wise Total IN/OUT</h4>
+    <canvas id="projectChart" height="130"></canvas>
+
+    <a href="/" class="btn btn-secondary">← Back to Projects</a>
+  </div>
+
+  <script>
+    // Pie Chart - IN vs OUT
+    new Chart(document.getElementById('inOutChart'), {
+      type: 'pie',
+      data: {
+        labels: {{ in_out_data | map(attribute='type') | list | tojson }},
+        datasets: [{
+          data: {{ in_out_data | map(attribute='total') | list | tojson }},
+          backgroundColor: ['#28a745', '#dc3545'],
+          hoverOffset: 20,
+          borderWidth: 1,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { size: 14 }
+            }
+          }
+        }
+      }
+    });
+
+    // Bar Chart - Monthly Volume
+    new Chart(document.getElementById('volumeChart'), {
+      type: 'bar',
+      data: {
+        labels: {{ monthly_volume | map(attribute='month') | list | tojson }},
+        datasets: [{
+          label: 'Transactions',
+          data: {{ monthly_volume | map(attribute='count') | list | tojson }},
+          backgroundColor: '#0d6efd',
+          borderRadius: 6,
+          barPercentage: 0.6
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: '#e9ecef'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+
+    // Line Chart - Cash Flow
+    new Chart(document.getElementById('cashFlowChart'), {
+      type: 'line',
+      data: {
+        labels: {{ cash_flow | map(attribute='month') | list | tojson }},
+        datasets: [
+          {
+            label: 'IN',
+            data: {{ cash_flow | map(attribute='total_in') | list | tojson }},
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2
+          },
+          {
+            label: 'OUT',
+            data: {{ cash_flow | map(attribute='total_out') | list | tojson }},
+            borderColor: '#dc3545',
+            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: '#e9ecef'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { size: 14 }
+            }
+          }
+        }
+      }
+    });
+
+    // Bar Chart - Project Totals
+    new Chart(document.getElementById('projectChart'), {
+      type: 'bar',
+      data: {
+        labels: {{ project_totals | map(attribute='project_name') | list | tojson }},
+        datasets: [
+          {
+            label: 'IN',
+            data: {{ project_totals | map(attribute='total_in') | list | tojson }},
+            backgroundColor: '#28a745',
+            borderRadius: { topLeft: 6, topRight: 6 },
+            barPercentage: 0.5
+          },
+          {
+            label: 'OUT',
+            data: {{ project_totals | map(attribute='total_out') | list | tojson }},
+            backgroundColor: '#dc3545',
+            borderRadius: { bottomLeft: 6, bottomRight: 6 },
+            barPercentage: 0.5
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: { stacked: true, grid: { display: false } },
+          y: { stacked: true, grid: { color: '#e9ecef' }, beginAtZero: true }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: { size: 14 } }
+          }
+        }
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
