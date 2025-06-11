@@ -3,16 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <style>
+    @font-face {
+      font-family: 'TrioDevanagariHindi';
+      src: url("{{ url_for('static', filename='fonts/TiroDevanagariHindi-Regular.ttf') }}") format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
     body { font-family: Arial, sans-serif; font-size: 12px; }
+    .hindi { font-family: 'TrioDevanagariHindi', Arial, sans-serif; }
     h2 { text-align: center; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
   </style>
 </head>
 <body>
-  <h2>Project: {{ project.name }}</h2>
-  <p><strong>Description:</strong> {{ project.description }}</p>
+  <h2>Project: {{ project.name }} mayur</h2>
+  <p class="hindi"><strong>Description:</strong> {{ project.description }} </p>
   <p><strong>Start:</strong> {{ project.start_date }} | <strong>End:</strong> {{ project.end_date }}</p>
+  <div class="hindi">फ्लोरिंग स्टाईल काढणे</div>
 
   <h3>Payments</h3>
   <table>

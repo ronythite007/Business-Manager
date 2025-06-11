@@ -8,9 +8,10 @@ import datetime
 from flask import send_file
 from io import BytesIO
 import pandas as pd
-from xhtml2pdf import pisa
+# from xhtml2pdf import pisa
 import os
 from werkzeug.utils import secure_filename
+from weasyprint import HTML
 
 from flask import send_from_directory
 from flask import send_file
@@ -241,8 +242,9 @@ def export_project_excel(project_id):
 
 
 @app.route('/project/<int:project_id>/export/pdf')
+@app.route('/project/<int:project_id>/export/pdf')
+@login_required
 def export_project_pdf(project_id):
-
     # Ensure only the owner (user_id) can export the project
     conn = get_sql_connection()
     cursor = conn.cursor(dictionary=True)
@@ -258,7 +260,6 @@ def export_project_pdf(project_id):
 
     conn = get_sql_connection()
     cursor = conn.cursor(dictionary=True)
-
     cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))
     project = cursor.fetchone()
 
@@ -272,13 +273,43 @@ def export_project_pdf(project_id):
 
     html = render_template('export_pdf_template.html', project=project, payments=payments)
     pdf_file = BytesIO()
-    pisa.CreatePDF(BytesIO(html.encode("utf-8")), dest=pdf_file)
-
+    HTML(string=html).write_pdf(pdf_file)
     pdf_file.seek(0)
     return send_file(pdf_file,
                      as_attachment=True,
                      download_name=f"{project['name']}_payments.pdf",
                      mimetype='application/pdf')
+
+@app.route('/project/<int:project_id>/export/html')
+@login_required
+def export_project_html(project_id):
+    # Ensure only the owner (user_id) can view the export
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM projects WHERE id = %s AND user_id = %s", (project_id, session['user_id']))
+    project = cursor.fetchone()
+    if not project:
+        cursor.close()
+        flash('You do not have permission to view this project.', 'danger')
+        return redirect(url_for('index'))
+    cursor.close()
+
+    person = request.args.get('person', '').strip()
+
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))
+    project = cursor.fetchone()
+
+    if person:
+        cursor.execute("SELECT * FROM payments WHERE project_id = %s AND person_name LIKE %s",
+                       (project_id, f"%{person}%"))
+    else:
+        cursor.execute("SELECT * FROM payments WHERE project_id = %s", (project_id,))
+    payments = cursor.fetchall()
+    cursor.close()
+
+    return render_template('export_pdf_template.html', project=project, payments=payments)
 
 #------------------------------------------------------------------------------------------------------------------------
 @app.route('/project/edit/<int:project_id>', methods=['GET', 'POST'])
