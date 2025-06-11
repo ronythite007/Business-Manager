@@ -78,17 +78,25 @@ def add_project():
     if 'user_id' not in session:
         flash('Please log in to add a project.', 'warning')
         return redirect(url_for('login'))
-    
     if request.method == 'POST':
         name = request.form['name']
         description = request.form['description']
         start_date = request.form['start_date']
         end_date = request.form['end_date']
-
+        status = request.form.get('status', 'ongoing')
+        file_path = None
+        file = request.files.get('file')
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            saved_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(saved_path)
+            file_path = f'uploads/{filename}'
         conn = get_sql_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO projects (name, description, start_date, end_date,user_id) VALUES (%s, %s, %s, %s, %s)",
-                       (name, description, start_date, end_date, session['user_id']))
+        cursor.execute("""
+            INSERT INTO projects (name, description, start_date, end_date, user_id, file_path, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (name, description, start_date, end_date, session['user_id'], file_path, status))
         conn.commit()
         cursor.close()
         return redirect(url_for('index'))
@@ -289,24 +297,49 @@ def edit_project(project_id):
         cursor.close()
         flash('You do not have permission to edit this project.', 'danger')
         return redirect(url_for('index'))
-    conn = get_sql_connection()
-    cursor = conn.cursor(dictionary=True)
+    # No need to re-open connection, reuse above
 
     if request.method == 'POST':
         name = request.form['name']
         description = request.form['description']
         start_date = request.form['start_date']
         end_date = request.form['end_date']
+        status = request.form.get('status', 'ongoing')
+        old_file_path = project.get('file_path')
+        file_path = old_file_path
+
+        # Handle new file upload
+        file = request.files.get('file')
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            saved_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(saved_path)
+            file_path = f'uploads/{filename}'
+            # Remove old file if exists
+            if old_file_path and os.path.exists(old_file_path.replace('uploads/', app.config['UPLOAD_FOLDER'] + os.sep)):
+                try:
+                    os.remove(old_file_path.replace('uploads/', app.config['UPLOAD_FOLDER'] + os.sep))
+                except Exception:
+                    pass
+        # Handle file deletion
+        elif request.form.get('delete_file') == 'yes':
+            if old_file_path and os.path.exists(old_file_path.replace('uploads/', app.config['UPLOAD_FOLDER'] + os.sep)):
+                try:
+                    os.remove(old_file_path.replace('uploads/', app.config['UPLOAD_FOLDER'] + os.sep))
+                except Exception:
+                    pass
+            file_path = None
 
         cursor.execute("""
             UPDATE projects
-            SET name = %s, description = %s, start_date = %s, end_date = %s
+            SET name = %s, description = %s, start_date = %s, end_date = %s, file_path = %s, status = %s
             WHERE id = %s
-        """, (name, description, start_date, end_date, project_id))
+        """, (name, description, start_date, end_date, file_path, status, project_id))
         conn.commit()
         cursor.close()
         return redirect(url_for('view_project', project_id=project_id))
 
+    # GET request
     cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))
     project = cursor.fetchone()
     cursor.close()
@@ -498,9 +531,13 @@ def register():
         password_hash = generate_password_hash(password)
         cursor.execute('INSERT INTO users (username, password_hash) VALUES (%s, %s)', (username, password_hash))
         conn.commit()
+        user_id = cursor.lastrowid
         cursor.close()
-        flash('Registration successful. Please log in.', 'success')
-        return redirect(url_for('login'))
+        # Log the user in and redirect to business details
+        session['user_id'] = user_id
+        session['username'] = username
+        flash('Registration successful! Please enter your business details.', 'success')
+        return redirect(url_for('business_details'))
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -512,13 +549,20 @@ def login():
         cursor = conn.cursor(dictionary=True)
         cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
         user = cursor.fetchone()
-        cursor.close()
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
+            # Check if business details exist
+            cursor.execute('SELECT * FROM business_details WHERE user_id = %s', (user['id'],))
+            details = cursor.fetchone()
+            cursor.close()
             flash('Login successful!', 'success')
+            if not details:
+                flash('Please enter your business details to continue.', 'info')
+                return redirect(url_for('business_details'))
             return redirect(url_for('index'))
         else:
+            cursor.close()
             flash('Invalid username or password.', 'danger')
     return render_template('login.html')
 
@@ -555,6 +599,46 @@ def delete_payment(payment_id):
     cursor.close()
     flash('Payment deleted successfully.', 'success')
     return redirect(url_for('view_project', project_id=project_id))
+
+@app.route('/business-details', methods=['GET', 'POST'])
+@login_required
+def business_details():
+    user_id = session['user_id']
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    if request.method == 'POST':
+        business_name = request.form['business_name']
+        address = request.form['address']
+        phone = request.form['phone']
+        email = request.form['email']
+
+        # Check if already exists
+        cursor.execute('SELECT * FROM business_details WHERE user_id = %s', (user_id,))
+        existing = cursor.fetchone()
+
+        if existing:
+            cursor.execute('''
+                UPDATE business_details 
+                SET business_name = %s, address = %s, phone = %s, email = %s 
+                WHERE user_id = %s
+            ''', (business_name, address, phone, email, user_id))
+        else:
+            cursor.execute('''
+                INSERT INTO business_details (user_id, business_name, address, phone, email)
+                VALUES (%s, %s, %s, %s, %s)
+            ''', (user_id, business_name, address, phone, email))
+
+        conn.commit()
+        cursor.close()
+        flash('Business details saved!', 'success')
+        return redirect(url_for('index'))
+
+    # GET: show form with existing data if present
+    cursor.execute('SELECT * FROM business_details WHERE user_id = %s', (user_id,))
+    details = cursor.fetchone()
+    cursor.close()
+    return render_template('business_details.html', details=details)
 
 if __name__ == '__main__':
     app.run(debug=True)
