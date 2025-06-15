@@ -14,25 +14,34 @@
     font-size: 12px;
   }
   .header {
-    display: flex;
-    justify-content: space-between;
+    width: 100%;
     margin-bottom: 20px;
     border-bottom: 1px solid #ddd;
     padding-bottom: 15px;
   }
-  .logo-container {
+  .header-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .header-table td {
+    vertical-align: top;
+    border: none;
+  }
+  .logo-cell {
     width: 100px; /* Fixed width for logo area */
-    height: 100px; /* Fixed height for logo area */
-    display: flex;
-    align-items: center;
+    vertical-align: middle;
+  }
+  .logo-container {
+    width: 100px;
+    height: 100px;
   }
   .logo-container img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain; /* Ensures logo maintains aspect ratio */
+    max-width: 100px;
+    max-height: 100px;
   }
   .business-info {
     text-align: right;
+    vertical-align: middle;
   }
   .business-info p {
     margin: 3px 0;
@@ -99,20 +108,27 @@
 <body>
 
   <div class="header">
-    {% if logo_path %}
-    <div class="logo-container">
-      <img src="{{ logo_path }}" alt="Business Logo">
-    </div>
-    {% endif %}
-    
-    <div class="business-info">
-      <p><strong>{{ business.business_name }}</strong></p>
-      <p>{{ business.address }}</p>
-      <p>Phone: {{ business.phone }}</p>
-      <p>Email: {{ business.email }}</p>
-    </div>
+    <table class="header-table">
+      <tr>
+        {% if logo_path %}
+        <td class="logo-cell">
+          <div class="logo-container">
+            <img src="{{ logo_path }}" alt="Business Logo">
+          </div>
+        </td>
+        {% endif %}
+        
+        <td class="business-info">
+          <p><strong>{{ business.business_name }}</strong></p>
+          <p>{{ business.address }}</p>
+          <p>Phone: {{ business.phone }}</p>
+          <p>Email: {{ business.email }}</p>
+        </td>
+      </tr>
+    </table>
   </div>
 
+  <!-- Rest of your content remains the same -->
   <h2>Project Report: {{ project.name }}</h2>
   
   <div class="project-info">
@@ -145,7 +161,6 @@
         <td>{{ p.reason }}</td>
       </tr>
       {% endfor %}
-  
     </tbody>
   </table>
 
