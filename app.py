@@ -241,44 +241,95 @@ def export_project_excel(project_id):
 
 
 @app.route('/project/<int:project_id>/export/pdf')
+@login_required
 def export_project_pdf(project_id):
-
-    # Ensure only the owner (user_id) can export the project
+    user_id = session['user_id']
     conn = get_sql_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM projects WHERE id = %s AND user_id = %s", (project_id, session['user_id']))
+
+    # Ownership check
+    cursor.execute("SELECT * FROM projects WHERE id = %s AND user_id = %s", (project_id, user_id))
     project = cursor.fetchone()
     if not project:
         cursor.close()
         flash('You do not have permission to export this project.', 'danger')
         return redirect(url_for('index'))
-    cursor.close()
 
+    # Get payments
     person = request.args.get('person', '').strip()
-
-    conn = get_sql_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))
-    project = cursor.fetchone()
-
     if person:
         cursor.execute("SELECT * FROM payments WHERE project_id = %s AND person_name LIKE %s",
                        (project_id, f"%{person}%"))
     else:
         cursor.execute("SELECT * FROM payments WHERE project_id = %s", (project_id,))
     payments = cursor.fetchall()
+
+    # Get business details
+    cursor.execute("SELECT business_name, address, phone, email, logo FROM business_details WHERE user_id = %s", (user_id,))
+    business = cursor.fetchone()
+    logo_path = business['logo'] if business and business['logo'] else None
+
     cursor.close()
 
-    html = render_template('export_pdf_template.html', project=project, payments=payments)
+    # Full path to logo (required for PDF rendering engines)
+    if logo_path:
+        logo_path = os.path.join('static', logo_path.split('static/')[-1])
+
+    # Render HTML
+    html = render_template('export_pdf_template.html',
+                           project=project,
+                           payments=payments,
+                           business=business,
+                           logo_path=logo_path)
+
     pdf_file = BytesIO()
     pisa.CreatePDF(BytesIO(html.encode("utf-8")), dest=pdf_file)
-
     pdf_file.seek(0)
+
     return send_file(pdf_file,
                      as_attachment=True,
-                     download_name=f"{project['name']}_payments.pdf",
+                     download_name=f"{project['name']}_report.pdf",
                      mimetype='application/pdf')
+# ------------------------------------------------------------------------------------------------------------------------
+@app.route('/project/<int:project_id>/export/html')
+@login_required
+def view_project_html_report(project_id):
+    user_id = session['user_id']
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Ownership check
+    cursor.execute("SELECT * FROM projects WHERE id = %s AND user_id = %s", (project_id, user_id))
+    project = cursor.fetchone()
+    if not project:
+        cursor.close()
+        flash('You do not have permission to view this project.', 'danger')
+        return redirect(url_for('index'))
+
+    # Get payments
+    person = request.args.get('person', '').strip()
+    if person:
+        cursor.execute("SELECT * FROM payments WHERE project_id = %s AND person_name LIKE %s",
+                       (project_id, f"%{person}%"))
+    else:
+        cursor.execute("SELECT * FROM payments WHERE project_id = %s", (project_id,))
+    payments = cursor.fetchall()
+
+    # Get business details
+    cursor.execute("SELECT business_name, address, phone, email, logo FROM business_details WHERE user_id = %s", (user_id,))
+    business = cursor.fetchone()
+    logo_path = business['logo'] if business and business['logo'] else None
+    cursor.close()
+
+    # Prepare logo path for HTML (web preview)
+    if logo_path:
+        logo_path = url_for('static', filename=logo_path.split('static/')[-1])
+
+    return render_template('export_pdf_template.html',
+                           project=project,
+                           payments=payments,
+                           business=business,
+                           logo_path=logo_path)
 
 #------------------------------------------------------------------------------------------------------------------------
 @app.route('/project/edit/<int:project_id>', methods=['GET', 'POST'])
@@ -600,6 +651,16 @@ def delete_payment(payment_id):
     flash('Payment deleted successfully.', 'success')
     return redirect(url_for('view_project', project_id=project_id))
 
+UPLOAD_FOLDER = 'static/uploads/logos'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Ensure upload folder exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @app.route('/business-details', methods=['GET', 'POST'])
 @login_required
 def business_details():
@@ -612,29 +673,44 @@ def business_details():
         address = request.form['address']
         phone = request.form['phone']
         email = request.form['email']
+        logo_file = request.files.get('logo')
+        logo_path = None
 
-        # Check if already exists
+        # Handle file upload
+        if logo_file and allowed_file(logo_file.filename):
+            filename = secure_filename(f"user{user_id}_{logo_file.filename}")
+            logo_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            logo_file.save(logo_path)
+
+        # Check if record exists
         cursor.execute('SELECT * FROM business_details WHERE user_id = %s', (user_id,))
         existing = cursor.fetchone()
 
         if existing:
-            cursor.execute('''
-                UPDATE business_details 
-                SET business_name = %s, address = %s, phone = %s, email = %s 
-                WHERE user_id = %s
-            ''', (business_name, address, phone, email, user_id))
+            if logo_path:
+                cursor.execute('''
+                    UPDATE business_details 
+                    SET business_name=%s, address=%s, phone=%s, email=%s, logo=%s 
+                    WHERE user_id=%s
+                ''', (business_name, address, phone, email, logo_path, user_id))
+            else:
+                cursor.execute('''
+                    UPDATE business_details 
+                    SET business_name=%s, address=%s, phone=%s, email=%s 
+                    WHERE user_id=%s
+                ''', (business_name, address, phone, email, user_id))
         else:
             cursor.execute('''
-                INSERT INTO business_details (user_id, business_name, address, phone, email)
-                VALUES (%s, %s, %s, %s, %s)
-            ''', (user_id, business_name, address, phone, email))
+                INSERT INTO business_details (user_id, business_name, address, phone, email, logo)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (user_id, business_name, address, phone, email, logo_path))
 
         conn.commit()
         cursor.close()
         flash('Business details saved!', 'success')
         return redirect(url_for('index'))
 
-    # GET: show form with existing data if present
+    # GET request: load existing details
     cursor.execute('SELECT * FROM business_details WHERE user_id = %s', (user_id,))
     details = cursor.fetchone()
     cursor.close()
