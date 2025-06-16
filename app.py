@@ -335,20 +335,19 @@ def view_project_html_report(project_id):
 @app.route('/project/edit/<int:project_id>', methods=['GET', 'POST'])
 @login_required
 def edit_project(project_id):
-    # Ensure only the owner (user_id) can edit the project
     if 'user_id' not in session:
         flash('Please log in to edit a project.', 'warning')
         return redirect(url_for('login'))
-    
+
     conn = get_sql_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM projects WHERE id = %s AND user_id = %s", (project_id, session['user_id']))
     project = cursor.fetchone()
+
     if not project:
         cursor.close()
         flash('You do not have permission to edit this project.', 'danger')
         return redirect(url_for('index'))
-    # No need to re-open connection, reuse above
 
     if request.method == 'POST':
         name = request.form['name']
@@ -359,19 +358,32 @@ def edit_project(project_id):
         old_file_path = project.get('file_path')
         file_path = old_file_path
 
-        # Handle new file upload
+        print("DEBUG: Received form data")
+        print(f"Name: {name}, Start Date: {start_date}, End Date: {end_date}")
+        print("Old file path:", old_file_path)
+
         file = request.files.get('file')
-        if file and file.filename and allowed_file(file.filename):
+        if file and file.filename:
+            if not allowed_file(file.filename):
+                flash('Invalid file type.', 'danger')
+                print("ERROR: Invalid file type -", file.filename)
+                cursor.close()
+                return redirect(request.url)
+
+            print("DEBUG: File received:", file.filename)
             filename = secure_filename(file.filename)
             saved_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(saved_path)
             file_path = f'uploads/{filename}'
-            # Remove old file if exists
+
+            # Remove old file
             if old_file_path and os.path.exists(old_file_path.replace('uploads/', app.config['UPLOAD_FOLDER'] + os.sep)):
                 try:
                     os.remove(old_file_path.replace('uploads/', app.config['UPLOAD_FOLDER'] + os.sep))
-                except Exception:
-                    pass
+                    print("DEBUG: Old file removed:", old_file_path)
+                except Exception as e:
+                    print("WARNING: Failed to remove old file:", e)
+                    
         # Handle file deletion
         elif request.form.get('delete_file') == 'yes':
             if old_file_path and os.path.exists(old_file_path.replace('uploads/', app.config['UPLOAD_FOLDER'] + os.sep)):
@@ -381,21 +393,24 @@ def edit_project(project_id):
                     pass
             file_path = None
 
+        print("Final file path to save:", file_path)
+
         cursor.execute("""
             UPDATE projects
             SET name = %s, description = %s, start_date = %s, end_date = %s, file_path = %s, status = %s
             WHERE id = %s
         """, (name, description, start_date, end_date, file_path, status, project_id))
+
         conn.commit()
         cursor.close()
+        print("DEBUG: Project updated successfully.")
         return redirect(url_for('view_project', project_id=project_id))
 
-    # GET request
+    # GET
     cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))
     project = cursor.fetchone()
     cursor.close()
     return render_template('edit_project.html', project=project)
-
 # ------------------------------------------------------------------------------------------------------------------------
 
 @app.route('/project/delete/<int:project_id>')

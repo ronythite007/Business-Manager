@@ -212,8 +212,19 @@
           <a href="/project/delete/{{ p.id }}" class="btn btn-sm btn-outline-cute btn-cute" onclick="return confirm('Are you sure?')">🗑️ Delete</a>
         </div>
       </div>
+      <div class="col-12 mt-1">
+            <span class="label">Attachment:</span>
+              {% if p.file_path %}
+                <a href="/{{ p.file_path }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-file-earmark-arrow-down"></i> View File
+                </a>
+              {% else %}
+            <span class="text-muted">N/A</span>
+            {% endif %}
+          </div>
     </div>
     {% endfor %}
+    
 
   </div>
 
