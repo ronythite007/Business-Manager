@@ -14,6 +14,25 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-direction: column;
+    }
+
+    .header-logo {
+      text-align: center;
+      margin-bottom: 1rem;
+      animation: fadeIn 0.8s ease;
+    }
+
+    .header-logo img {
+      height: 64px;
+      margin-bottom: 0.5rem;
+    }
+
+    .header-logo h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #0d6efd;
+      margin: 0;
     }
 
     .login-card {
@@ -46,18 +65,25 @@
       margin-top: 1rem;
     }
 
+    .alert {
+      font-size: 0.9rem;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
-    }
-
-    .alert {
-      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
 
+  <!-- Logo & Welcome -->
+  <div class="header-logo">
+    <img src="/static/images/logo.png" alt="Inoutbook Logo">
+    <h1>Welcome to Inoutbook</h1>
+  </div>
+
+  <!-- Login Card -->
   <div class="login-card">
     <h2><i class="bi bi-person-circle"></i> Login</h2>
 

@@ -144,23 +144,21 @@
           </div>
         </div>
         <div class="mb-3">
-          <label for="file" class="form-label">📎Project File (Document/Image)</label>
-          {% if project.file_path %}
-            <div class="mb-2">
-              <a href="/{{ project.file_path }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-file-earmark-arrow-down"></i> View Current File
-              </a>
-              <div class="form-check mt-2">
-                <input class="form-check-input" type="checkbox" name="delete_file" value="yes" id="delete_file">
-                <label class="form-check-label" for="delete_file">
-                  Delete current file
-                </label>
-              </div>
-            </div>
-          {% endif %}
-          <input type="file" name="file" id="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx">
-          <div class="form-text">Upload a new file to replace the current one.</div>
-        </div>
+  <label for="file" class="form-label">📎 Project File (Document/Image)</label>
+  <input type="file" name="file" id="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx">
+
+  {% if project.file_path %}
+    <p class="form-text mt-2">
+      Current File:
+      <a href="/{{ project.file_path }}" target="_blank">View</a><br />
+      <input type="checkbox" name="delete_file" value="yes" id="delete_file" />
+      <label for="delete_file" class="mb-0">Delete existing file</label>
+    </p>
+  {% else %}
+    <p class="form-text mt-2 text-muted">No file uploaded.</p>
+  {% endif %}
+</div>
+
         <div class="mb-3">
           <label for="status" class="form-label">📊 Project Status</label>
           <select name="status" id="status" class="form-control" required>

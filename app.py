@@ -404,13 +404,14 @@ def edit_project(project_id):
         conn.commit()
         cursor.close()
         print("DEBUG: Project updated successfully.")
-        return redirect(url_for('view_project', project_id=project_id))
+        return redirect(url_for('index', project_id=project_id))
 
     # GET
     cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))
     project = cursor.fetchone()
     cursor.close()
     return render_template('edit_project.html', project=project)
+
 # ------------------------------------------------------------------------------------------------------------------------
 
 @app.route('/project/delete/<int:project_id>')
@@ -667,14 +668,14 @@ def delete_payment(payment_id):
     return redirect(url_for('view_project', project_id=project_id))
 
 UPLOAD_FOLDER = 'static/uploads/logos'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS_LOGOS = {'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Ensure upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_LOGOS
 
 @app.route('/business-details', methods=['GET', 'POST'])
 @login_required
