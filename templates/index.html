@@ -138,17 +138,33 @@
     {% if session.get('user_id') %}
       <div class="logged-user">
         Logged in as <strong>{{ session['username'] }}</strong> &nbsp;
-        <a href="{{ url_for('logout') }}" class="text-danger text-decoration-none">
+        <!-- <a href="{{ url_for('logout') }}" class="text-danger text-decoration-none">
           <i class="bi bi-box-arrow-right"></i> Logout
-        </a>
+        </a> -->
       </div>
     {% endif %}
 
     <!-- <h1>📘 inoutbook</h1> -->
 
-    <div class="d-flex align-items-center mb-4">
-      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 50px; width: 50px; object-fit: contain; margin-right: 10px;">
-      <h1 class="m-0">inoutbook</h1>
+    <div class="d-flex align-items-center mb-4 justify-content-between">
+      <div class="d-flex align-items-center">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 50px; width: 50px; object-fit: contain; margin-right: 10px;">
+        <h1 class="m-0">inoutbook</h1>
+      </div>
+      <div class="dropdown">
+  <button class="btn btn-light shadow-sm border-0 d-flex align-items-center justify-content-center"
+          type="button" id="menuDropdown" data-bs-toggle="dropdown" aria-expanded="false"
+          style="border-radius: 50%; width: 44px; height: 44px;">
+    <i class="bi bi-list" style="font-size: 1.4rem;"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-4 mt-2" aria-labelledby="menuDropdown">
+    <li><a class="dropdown-item py-2" href="/workers"><i class="bi bi-people me-2"></i> Workers</a></li>
+    <li><a class="dropdown-item py-2" href="/project/add"><i class="bi bi-plus-circle me-2"></i> Add Project</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item py-2 text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+  </ul>
+</div>
+
     </div>
 
 

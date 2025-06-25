@@ -69,12 +69,17 @@
 
         <div class="mb-3">
           <label class="form-label">👤 Person Name</label>
-          <input type="text" name="person_name" class="form-control" required>
+          <div class="input-group">
+            <input type="text" name="person_name" id="personName" class="form-control" required>
+            <button type="button" class="btn btn-outline-secondary" onclick="pickContact()" title="Pick from contacts">
+              <i class="bi bi-person-lines-fill"></i>
+            </button>
+          </div>
         </div>
 
         <div class="mb-3">
           <label class="form-label">📞 Contact Info</label>
-          <input type="text" name="contact_info" class="form-control">
+          <input type="text" name="contact_info" id="contactNumber" class="form-control">
         </div>
 
         <div class="mb-3">
@@ -122,6 +127,25 @@
     if (type) {
       const input = document.getElementById('type-input');
       if (input) input.value = type;
+    }
+
+    // Contact Picker API integration
+    async function pickContact() {
+      if ('contacts' in navigator && 'ContactsManager' in window) {
+        try {
+          const props = ['name', 'tel'];
+          const opts = { multiple: false };
+          const contacts = await navigator.contacts.select(props, opts);
+          if (contacts.length > 0) {
+            document.getElementById('personName').value = contacts[0].name[0] || '';
+            document.getElementById('contactNumber').value = contacts[0].tel[0] || '';
+          }
+        } catch (err) {
+          alert('Contact access was denied or not supported.');
+        }
+      } else {
+        alert('Contact Picker API not supported on this device/browser.');
+      }
     }
   </script>
 </body>

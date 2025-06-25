@@ -146,6 +146,25 @@
       border-top: 1px solid #ccc;
       padding-top: 10px;
     }
+
+    /* Improved payment type styling */
+    .payment-in {
+      color: #27ae60; /* Darker green for better readability */
+      font-weight: 600;
+      background-color: #e8f5e9; /* Very light green background */
+      padding: 2px 6px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .payment-out {
+      color: #e74c3c; /* Darker red for better readability */
+      font-weight: 600;
+      background-color: #ffebee; /* Very light red background */
+      padding: 2px 6px;
+      border-radius: 3px;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
@@ -183,31 +202,39 @@
 
   <h3>Payment Transactions</h3>
   <table class="payment-table">
-    <thead>
-      <tr>
-        <th width="12%">Date</th>
-        <th width="10%">Type</th>
-        <th width="13%" class="text-right">Amount</th>
-        <th width="17%">Recipient / Payer</th>
-        <th width="17%">Contact</th>
-        <th width="11%">Method</th>
-        <th width="20%">Description</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in payments %}
-      <tr>
-        <td>{{ p.date }}</td>
-        <td>{{ p.type }}</td>
-        <td class="text-right amount-highlight">{{ p.amount }}</td>
-        <td>{{ p.person_name }}</td>
-        <td>{{ p.contact_info }}</td>
-        <td>{{ p.payment_method }}</td>
-        <td>{{ p.reason }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <thead>
+    <tr>
+      <th width="12%">Date</th>
+      <th width="10%">Type</th>
+      <th width="13%" class="text-right">Amount</th>
+      <th width="17%">Recipient / Payer</th>
+      <th width="17%">Contact</th>
+      <th width="11%">Method</th>
+      <th width="20%">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in payments %}
+    <tr>
+      <td>{{ p.date }}</td>
+      <td>
+        {% if p.type == 'IN' %}
+          <span class="payment-in">IN</span>
+        {% else %}
+          <span class="payment-out">OUT</span>
+        {% endif %}
+      </td>
+      <td class="text-right amount-highlight" style="color: {% if p.type == 'IN' %}#27ae60{% else %}#e74c3c{% endif %};">
+        {{ "%.2f"|format(p.amount) }}
+      </td>
+      <td>{{ p.person_name }}</td>
+      <td>{{ p.contact_info }}</td>
+      <td>{{ p.payment_method }}</td>
+      <td>{{ p.reason }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 
   <div class="footer">
     <p>This is a system-generated report. No signature required. | Generated on inoutbook</p>

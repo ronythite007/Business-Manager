@@ -732,5 +732,42 @@ def business_details():
     cursor.close()
     return render_template('business_details.html', details=details)
 
+@app.route('/workers', methods=['GET', 'POST'])
+@login_required
+def workers():
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
+    if request.method == 'POST':
+        name = request.form['name']
+        contact = request.form['contact']
+        cursor.execute("INSERT INTO workers (user_id, name, contact) VALUES (%s, %s, %s)", (session['user_id'], name, contact))
+        conn.commit()
+    cursor.execute("SELECT * FROM workers WHERE user_id = %s", (session['user_id'],))
+    workers = cursor.fetchall()
+    cursor.close()
+    return render_template('workers.html', workers=workers)
+
+@app.route('/workers/<int:worker_id>/payments', methods=['GET', 'POST'])
+@login_required
+def worker_payments(worker_id):
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM workers WHERE id = %s AND user_id = %s", (worker_id, session['user_id']))
+    worker = cursor.fetchone()
+    if not worker:
+        cursor.close()
+        flash('Worker not found or access denied.', 'danger')
+        return redirect(url_for('workers'))
+    if request.method == 'POST':
+        date = request.form.get('date')
+        amount = request.form.get('amount')
+        if date and amount:
+            cursor.execute("INSERT INTO worker_payments (worker_id, date, amount) VALUES (%s, %s, %s)", (worker_id, date, amount))
+            conn.commit()
+    cursor.execute("SELECT * FROM worker_payments WHERE worker_id = %s ORDER BY date DESC", (worker_id,))
+    payments = cursor.fetchall()
+    cursor.close()
+    return render_template('worker_payments.html', worker=worker, payments=payments)
+
 if __name__ == '__main__':
     app.run(debug=True)
