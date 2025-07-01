@@ -68,6 +68,22 @@ def index():
     projects = cursor.fetchall()
     cursor.close()
 
+    # Calculate total_in and total_out for each project, and ensure all are float for template math
+    from decimal import Decimal
+    for project in projects:
+        cursor2 = conn.cursor(dictionary=True)
+        cursor2.execute("SELECT type, SUM(amount) as total FROM payments WHERE project_id = %s GROUP BY type", (project['id'],))
+        sums = {row['type']: float(row['total']) for row in cursor2.fetchall()}
+        project['total_in'] = float(sums.get('IN', 0))
+        project['total_out'] = float(sums.get('OUT', 0))
+        # Ensure finalized_cost is float or None
+        if project.get('finalized_cost') is not None:
+            try:
+                project['finalized_cost'] = float(project['finalized_cost'])
+            except Exception:
+                project['finalized_cost'] = None
+        cursor2.close()
+
     return render_template('index.html', projects=projects, search_term=search_term)
 
 # ------------------------------------------------------------------------------------------------------------------------
@@ -91,12 +107,14 @@ def add_project():
             saved_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(saved_path)
             file_path = f'uploads/{filename}'
+        finalized_cost = request.form.get('finalized_cost')
+        finalized_cost = float(finalized_cost) if finalized_cost else None
         conn = get_sql_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO projects (name, description, start_date, end_date, user_id, file_path, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (name, description, start_date, end_date, session['user_id'], file_path, status))
+            INSERT INTO projects (name, description, start_date, end_date, user_id, file_path, status, finalized_cost)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (name, description, start_date, end_date, session['user_id'], file_path, status, finalized_cost))
         conn.commit()
         cursor.close()
         return redirect(url_for('index'))
@@ -107,34 +125,41 @@ def add_project():
 @app.route('/project/<int:project_id>', methods=['GET'])
 @login_required
 def view_project(project_id):
-
     if 'user_id' not in session:
         flash('Please log in to view project details.', 'warning')
         return redirect(url_for('login'))
-    
+
     conn = get_sql_connection()
     cursor = conn.cursor(dictionary=True)
+
     cursor.execute("SELECT * FROM projects WHERE id = %s AND user_id = %s", (project_id, session['user_id']))
     project = cursor.fetchone()
     if not project:
         flash('You do not have permission to view this project.', 'danger')
         cursor.close()
         return redirect(url_for('index'))
+
+    # Filters
     person_search = request.args.get('person', '').strip()
+    type_filter = request.args.get('type_filter', '').strip()
+    method_filter = request.args.get('method_filter', '').strip()
 
-    conn = get_sql_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))
-    project = cursor.fetchone()
+    query = "SELECT * FROM payments WHERE project_id = %s"
+    params = [project_id]
 
     if person_search:
-        cursor.execute("SELECT * FROM payments WHERE project_id = %s AND person_name LIKE %s", 
-                       (project_id, f"%{person_search}%"))
-    else:
-        cursor.execute("SELECT * FROM payments WHERE project_id = %s", (project_id,))
+        query += " AND person_name LIKE %s"
+        params.append(f"%{person_search}%")
+    if type_filter:
+        query += " AND type = %s"
+        params.append(type_filter)
+    if method_filter:
+        query += " AND payment_method = %s"
+        params.append(method_filter)
 
+    cursor.execute(query, tuple(params))
     payments = cursor.fetchall()
+
     total_in = sum(p['amount'] for p in payments if p['type'] == 'IN')
     total_out = sum(p['amount'] for p in payments if p['type'] == 'OUT')
     balance = total_in - total_out
@@ -146,7 +171,9 @@ def view_project(project_id):
                            total_in=total_in,
                            total_out=total_out,
                            balance=balance,
-                           person_search=person_search)
+                           person_search=person_search,
+                           type_filter=type_filter,
+                           method_filter=method_filter)
 
 # ------------------------------------------------------------------------------------------------------------------------
 
@@ -393,18 +420,21 @@ def edit_project(project_id):
                     pass
             file_path = None
 
+        finalized_cost = request.form.get('finalized_cost')
+        finalized_cost = float(finalized_cost) if finalized_cost else None
+
         print("Final file path to save:", file_path)
 
         cursor.execute("""
             UPDATE projects
-            SET name = %s, description = %s, start_date = %s, end_date = %s, file_path = %s, status = %s
+            SET name = %s, description = %s, start_date = %s, end_date = %s, file_path = %s, status = %s, finalized_cost = %s
             WHERE id = %s
-        """, (name, description, start_date, end_date, file_path, status, project_id))
+        """, (name, description, start_date, end_date, file_path, status, finalized_cost, project_id))
 
         conn.commit()
         cursor.close()
         print("DEBUG: Project updated successfully.")
-        return redirect(url_for('index', project_id=project_id))
+        return redirect(url_for('index'))
 
     # GET
     cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))

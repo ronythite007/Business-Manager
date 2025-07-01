@@ -132,6 +132,9 @@
     }
   </style>
 </head>
+<link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='images/logo.png') }}">
+<meta name="theme-color" content="#2d2d2d">
 <body>
   <div class="container py-4">
 
@@ -213,8 +216,16 @@
         <div>
           <div class="project-title">{{ p.name }}</div>
           <div class="project-meta mb-1">{{ p.description }}</div>
+          
           <div class="project-meta">📆 {{ p.start_date }} → {{ p.end_date or "Ongoing" }}</div>
-
+          <div class="project-meta">
+            Finalized Cost:
+            {% if p.finalized_cost is not none %}
+              ₹ {{ p.finalized_cost }}
+            {% else %}
+              <span class="text-muted">N/A</span>
+            {% endif %}
+          </div>
           <div class="col-12 mt-1">
             <span class="label">Attachment:</span>
               {% if p.file_path %}
@@ -230,6 +241,20 @@
           <div class="project-meta mt-2">
             {% if p.status == 'completed' %}
               <span class="project-status status-completed"><i class="bi bi-check-circle-fill"></i> Completed</span>
+              {% if p.finalized_cost is not none and p.finalized_cost|float != 0 %}
+                <div class="mt-2 p-2 bg-light border rounded small" style="max-width:280px;">
+                  <div><span class="fw-semibold">Total In:</span> ₹ {{ p.total_in | round(2) }}</div>
+                  <div><span class="fw-semibold">Total Out:</span> ₹ {{ p.total_out | round(2) }}</div>
+                  <div><span class="fw-semibold">Finalized Cost:</span> ₹ {{ p.finalized_cost | round(2) }}</div>
+                  {% set profit = (p.total_in | float) - (p.finalized_cost | float) %}
+                  {% set percent = (profit / (p.finalized_cost | float) * 100) %}
+                  {% if profit >= 0 %}
+                    <div style="color: #198754;"><span class="fw-semibold">Profit:</span> ₹ {{ profit | round(2) }} <span class="text-muted">({{ percent | round(2) }}%)</span></div>
+                  {% else %}
+                    <div style="color: #dc3545;"><span class="fw-semibold">Loss:</span> ₹ {{ (profit * -1) | round(2) }} <span class="text-muted">({{ percent | round(2) }}%)</span></div>
+                  {% endif %}
+                </div>
+              {% endif %}
             {% else %}
               <span class="project-status status-ongoing"><i class="bi bi-hourglass-split"></i> Ongoing</span>
             {% endif %}

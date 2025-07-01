@@ -198,6 +198,9 @@
     <div class="project-info-item"><strong>Description:</strong> {{ project.description }}</div>
     <div class="project-info-item"><strong>Period:</strong> {{ project.start_date }} to {{ project.end_date }}</div>
     <div class="project-info-item"><strong>Report Date:</strong> {{ current_date }}</div>
+    {% if project.finalized_cost %}
+    <div class="project-info-item"><strong>Finalized Cost:</strong> ₹ {{ project.finalized_cost }}</div>
+    {% endif %}
   </div>
 
   <h3>Payment Transactions</h3>

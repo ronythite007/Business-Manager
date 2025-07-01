@@ -166,6 +166,19 @@
             <option value="completed" {% if project.status == 'completed' %}selected{% endif %}>Completed</option>
           </select>
         </div>
+        <div class="mb-3">
+          <label for="finalized_cost" class="form-label">💰 Finalized/Agreed Project Cost</label>
+          <input
+            type="number"
+            name="finalized_cost"
+            id="finalized_cost"
+            class="form-control"
+            min="0"
+            step="0.01"
+            value="{{ project.finalized_cost or '' }}"
+            placeholder="Enter agreed cost (e.g. 100000)"
+          />
+        </div>
 
         <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
           <button type="submit" class="btn update-btn">

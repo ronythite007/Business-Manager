@@ -65,6 +65,18 @@
       }
     }
 
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #aaa;
+    }
+
+    .search-input {
+      padding-left: 2.5rem;
+    }
+
     .payment-cards {
       display: none;
     }
@@ -130,7 +142,7 @@
           <ul class="dropdown-menu dropdown-menu-end">
             <li>
               <a class="dropdown-item" href="{{ url_for('export_project_pdf', project_id=project.id) }}{% if person_search %}?person={{ person_search }}{% endif %}">
-                 Export PDF
+                Export PDF
               </a>
             </li>
             <li>
@@ -148,7 +160,7 @@
         <strong>End:</strong> {{ project.end_date or "Ongoing" }}
       </div>
 
-      <!-- Summary -->
+      <!-- Summary Cards -->
       <div class="row text-center mb-4">
         <div class="col-md-4 mb-3">
           <div class="bg-success text-white rounded-4 py-3 px-2 shadow-sm h-100">
@@ -170,30 +182,58 @@
         </div>
       </div>
 
-      <!-- Search -->
-      <form method="get" class="row g-2 mb-4">
-        <div class="col-md-6 col-12">
-          <input type="text" name="person" value="{{ person_search }}" class="form-control" placeholder="🔍 Search by person name" />
+      <!-- Search + Filter -->
+      <form method="get" class="mb-4">
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <div class="flex-grow-1 position-relative">
+            <input type="text" name="person" value="{{ person_search }}" class="form-control search-input" placeholder="Search person name" />
+            <i class="bi bi-search search-icon"></i>
+          </div>
+          <button class="btn btn-outline-dark" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
+            <i class="bi bi-funnel"></i>
+          </button>
         </div>
-        <div class="col-auto">
-          <button type="submit" class="btn btn-outline-primary"><i class="bi bi-search"></i> Search</button>
-          <a href="/project/{{ project.id }}" class="btn btn-outline-secondary"><i class="bi bi-x-circle"></i> Reset</a>
+
+        <div class="collapse mt-3" id="filtersCollapse">
+          <div class="row g-3">
+            <div class="col-md-4 col-12">
+              <label class="form-label">Type</label>
+              <select name="type_filter" class="form-select">
+                <option value="">All Types</option>
+                <option value="IN" {% if type_filter == 'IN' %}selected{% endif %}>IN</option>
+                <option value="OUT" {% if type_filter == 'OUT' %}selected{% endif %}>OUT</option>
+              </select>
+            </div>
+            <div class="col-md-4 col-12">
+              <label class="form-label">Method</label>
+              <select name="method_filter" class="form-select">
+                <option value="">All Methods</option>
+                <option value="Cash" {% if method_filter == 'Cash' %}selected{% endif %}>Cash</option>
+                <option value="UPI" {% if method_filter == 'UPI' %}selected{% endif %}>UPI</option>
+                <option value="Bank" {% if method_filter == 'Bank' %}selected{% endif %}>Bank</option>
+              </select>
+            </div>
+            <div class="col-md-4 col-12 d-flex gap-2 align-items-end">
+              <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel-fill"></i> Apply</button>
+              <a href="/project/{{ project.id }}" class="btn btn-outline-secondary w-100"><i class="bi bi-x-circle"></i> Reset</a>
+            </div>
+          </div>
         </div>
       </form>
 
-      <!-- Add Payment -->
-      <div class="d-flex justify-content-center align-items-center mb-3">
-        <div class="d-flex gap-2">
-          <a href="/payment/add/{{ project.id }}?type=IN" class="btn btn-success btn-sm">
-        <i class="bi bi-plus-circle"></i> Add IN Payment
+      <!-- Add Payment Buttons -->
+      <div class="d-flex justify-content-center mb-4">
+        <div class="d-flex gap-3">
+          <a href="/payment/add/{{ project.id }}?type=IN" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Add IN Payment
           </a>
-          <a href="/payment/add/{{ project.id }}?type=OUT" class="btn btn-danger btn-sm">
-        <i class="bi bi-plus-circle"></i> Add OUT Payment
+          <a href="/payment/add/{{ project.id }}?type=OUT" class="btn btn-danger">
+            <i class="bi bi-plus-circle"></i> Add OUT Payment
           </a>
         </div>
       </div>
 
-      <!-- Table View -->
+      <!-- Payment Table (Desktop) -->
       <div class="table-responsive">
         <table class="table table-bordered table-striped payments-table">
           <thead class="text-center">
@@ -230,9 +270,7 @@
               <td>
                 {% if pay.file_path %}
                 <a href="/{{ pay.file_path }}" target="_blank">View</a>
-                {% else %}
-                N/A
-                {% endif %}
+                {% else %} N/A {% endif %}
               </td>
               <td>
                 <a href="/payment/edit/{{ pay.id }}" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil-square"></i></a>
@@ -244,24 +282,22 @@
         </table>
       </div>
 
-      <!-- Mobile View -->
+      <!-- Payment Cards (Mobile View) -->
       <div class="payment-cards">
         {% for pay in payments %}
         <div class="payment-card">
           <h5>Payment on {{ pay.date }}</h5>
           <div class="row">
-            <div class="col-6"><span class="label">Type:</span><span class="value {% if pay.type == 'IN' %}text-success{% else %}text-danger{% endif %}">{{ pay.type }}</span></div>
-            <div class="col-6"><span class="label">Amount:</span><span class="value {% if pay.type == 'IN' %}text-success{% else %}text-danger{% endif %}">₹ {{ pay.amount }}</span></div>
-            <div class="col-6"><span class="label">Person:</span><span class="value">{{ pay.person_name }}</span></div>
-            <div class="col-6"><span class="label">Contact:</span><span class="value">{{ pay.contact_info }}</span></div>
-            <div class="col-6"><span class="label">Method:</span><span class="value">{{ pay.payment_method }}</span></div>
-            <div class="col-6"><span class="label">Reason:</span><span class="value">{{ pay.reason }}</span></div>
+            <div class="col-6"><span class="label">Type:</span> <span class="value {{ 'text-success' if pay.type == 'IN' else 'text-danger' }}">{{ pay.type }}</span></div>
+            <div class="col-6"><span class="label">Amount:</span> <span class="value {{ 'text-success' if pay.type == 'IN' else 'text-danger' }}">₹ {{ pay.amount }}</span></div>
+            <div class="col-6"><span class="label">Person:</span> <span class="value">{{ pay.person_name }}</span></div>
+            <div class="col-6"><span class="label">Contact:</span> <span class="value">{{ pay.contact_info }}</span></div>
+            <div class="col-6"><span class="label">Method:</span> <span class="value">{{ pay.payment_method }}</span></div>
+            <div class="col-6"><span class="label">Reason:</span> <span class="value">{{ pay.reason }}</span></div>
             <div class="col-12"><span class="label">Attachment:</span>
               {% if pay.file_path %}
               <a href="/{{ pay.file_path }}" target="_blank">View</a>
-              {% else %}
-              N/A
-              {% endif %}
+              {% else %} N/A {% endif %}
             </div>
           </div>
           <div class="actions mt-2">
@@ -278,6 +314,7 @@
       </div>
     </div>
   </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
