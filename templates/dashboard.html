@@ -1,224 +1,428 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Business Dashboard</title>
+  <meta charset="UTF-8">
+  <title>Dashboard | inoutbook</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  />
   <style>
     body {
-      background-color: #f8f9fa;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #222;
+      overflow-x: hidden;
     }
-    h2 {
+    .glass-bg {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 80% 10%, #b6e0fe3b 0%, transparent 60%),
+                  radial-gradient(circle at 10% 80%, #fbc2eb3b 0%, transparent 60%);
+    }
+    .glass-card {
+      background: rgba(255,255,255,0.88);
+      border-radius: 1.2rem;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      padding: 1.6rem 1.2rem;
+      margin-bottom: 1.5rem;
+      transition: all 0.25s ease;
+      border: 1px solid #e9ecef;
+      position: relative;
+      z-index: 1;
+    }
+    .glass-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    }
+    .summary-icon {
+      font-size: 2.3rem;
+      opacity: 0.85;
+      margin-bottom: 0.3rem;
+    }
+    .summary-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0b5ed7;
+      margin-bottom: 0.2rem;
+    }
+    .summary-value {
+      font-size: 1.8rem;
       font-weight: 700;
-      color: #343a40;
-      letter-spacing: 0.03em;
+      color: #212529;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
     }
-    h4 {
-      font-weight: 600;
-      color: #495057;
-      margin-bottom: 1rem;
-      margin-top: 3rem;
-      border-bottom: 2px solid #dee2e6;
-      padding-bottom: 0.25rem;
+    .trend-up, .trend-down {
+      font-size: 1.2rem;
     }
-    canvas {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgb(0 0 0 / 0.1);
-      padding: 1rem;
+    .profit-badge, .loss-badge {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 1rem;
+      margin-left: 0.4rem;
     }
-    .btn-secondary {
-      margin-top: 3rem;
-      padding: 0.5rem 1.5rem;
-      font-weight: 600;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgb(0 0 0 / 0.1);
+    .profit-badge {
+      background: #d1e7dd;
+      color: #198754;
     }
-    .container {
-      max-width: 900px;
+    .loss-badge {
+      background: #f8d7da;
+      color: #dc3545;
+    }
+    .info-badge {
+      font-size: 0.82rem;
+      margin-top: 0.3rem;
+      color: #6c757d;
+    }
+    .ai-insight {
+      font-size: 1rem;
+      color: #198754;
+      font-weight: 500;
+      margin-top: 0.5rem;
+    }
+    .chart-card {
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    @media (max-width: 768px) {
+      .summary-value {
+        font-size: 1.3rem;
+      }
+      .glass-card {
+        padding: 1rem;
+      }
+      .chart-card {
+        min-height: 250px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container py-4">
-    <h2 class="mb-3">📊 Business Insights Dashboard</h2>
+  <div class="glass-bg"></div>
+  <div class="container py-4 position-relative">
+    <h2 class="mb-4 text-center fw-bold text-primary">📈 Business Dashboard – inoutbook</h2>
 
-    <!-- IN vs OUT Pie -->
-    <h4>Total IN vs OUT</h4>
-    <canvas id="inOutChart" height="130"></canvas>
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="glass-card text-center">
+          <div class="summary-icon text-primary"><i class="bi bi-cash-stack"></i></div>
+          <div class="summary-title">Total IN</div>
+          <div class="summary-value">₹ <span id="inCounterNumber">{{ total_in or 0 }}</span></div>
+          <span class="info-badge">Income from all sources</span>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="glass-card text-center">
+          <div class="summary-icon text-danger"><i class="bi bi-cash-coin"></i></div>
+          <div class="summary-title">Total OUT</div>
+          <div class="summary-value">₹ <span id="outCounterNumber">{{ total_out or 0 }}</span></div>
+          <span class="info-badge">Total expenses made</span>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="glass-card text-center">
+          <div class="summary-icon text-success"><i class="bi bi-wallet2"></i></div>
+          <div class="summary-title">Balance</div>
+          <div class="summary-value">₹ <span id="balanceCounterNumber">{{ balance or 0 }}</span></div>
+          <span class="info-badge">Net cash in hand</span>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="glass-card text-center">
+          <div class="summary-icon text-info"><i class="bi bi-clipboard-data"></i></div>
+          <div class="summary-title">Agreed Cost</div>
+          <div class="summary-value">₹ <span id="agreedCounterNumber">{{ agreed_cost or 0 }}</span></div>
+          <span class="info-badge">Client approved cost</span>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="glass-card text-center">
+          <div class="summary-icon text-warning"><i class="bi bi-graph-up-arrow"></i></div>
+          <div class="summary-title">Profit/Loss</div>
+          <div class="summary-value">₹ <span id="profitLossCounterNumber">{{ profit_loss or 0 }}</span>
+            {% if profit_loss|float > 0 %}
+              <span class="trend-up"><i class="bi bi-arrow-up-right-circle"></i></span>
+              <span class="profit-badge">Profit</span>
+            {% elif profit_loss|float < 0 %}
+              <span class="trend-down"><i class="bi bi-arrow-down-right-circle"></i></span>
+              <span class="loss-badge">Loss</span>
+            {% endif %}
+          </div>
+          <span class="info-badge">Difference of IN - OUT</span>
+        </div>
+      </div>
+      <div class="col-12 col-md-8 col-lg-2">
+        <div class="glass-card text-center">
+          <div class="summary-icon text-success"><i class="bi bi-lightbulb"></i></div>
+          <div class="summary-title">AI Insights</div>
+          <div class="ai-insight">{{ ai_insight or 'Your profit increased 12% this month.' }}</div>
+        </div>
+      </div>
+    </div>
 
-    <!-- Monthly Volume Bar -->
-    <h4>Monthly Transaction Volume</h4>
-    <canvas id="volumeChart" height="130"></canvas>
+    <!-- Charts Row 1: Financial Overview -->
+    <div class="row g-4 mb-4">
+      <div class="col-12 col-lg-6">
+        <div class="glass-card chart-card">
+          <h6 class="mb-2 text-muted">📊 Monthly Income vs Expenses</h6>
+          <div class="mb-1 small text-secondary">Shows cash flow trends and helps identify peak earning/spending months</div>
+          <canvas id="incomeExpenseChart"></canvas>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="glass-card chart-card">
+          <h6 class="mb-2 text-muted">📈 Monthly Profit Trend</h6>
+          <div class="mb-1 small text-secondary">Tracks profitability and growth over time</div>
+          <canvas id="profitTrendChart"></canvas>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="glass-card chart-card">
+          <h6 class="mb-2 text-muted">📉 Cumulative Balance Over Time</h6>
+          <div class="mb-1 small text-secondary">Visualizes running balance evolution</div>
+          <canvas id="cumulativeBalanceChart"></canvas>
+        </div>
+      </div>
+    </div>
 
-    <!-- Line Chart: Cash Flow -->
-    <h4>Cash Flow Over Time</h4>
-    <canvas id="cashFlowChart" height="130"></canvas>
+    <!-- Charts Row 2: Project Insights -->
+    <div class="row g-4 mb-4">
+      <div class="col-12 col-lg-6">
+        <div class="glass-card chart-card">
+          <h6 class="mb-2 text-muted">📊 Project-wise Income vs Expense</h6>
+          <div class="mb-1 small text-secondary">Reveals profitable and loss-making projects</div>
+          <canvas id="projectComparisonChart"></canvas>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="glass-card chart-card">
+          <h6 class="mb-2 text-muted">📈 Project Profit Margin %</h6>
+          <div class="mb-1 small text-secondary">Percentage-based profitability indicator per project</div>
+          <canvas id="projectMarginChart"></canvas>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="glass-card chart-card">
+          <h6 class="mb-2 text-muted">📌 Top 5 Profitable Projects</h6>
+          <div class="mb-1 small text-secondary">Focus on what’s working well</div>
+          <canvas id="topProfitProjectsChart"></canvas>
+        </div>
+      </div>
+    </div>
 
-    <!-- Project-wise IN/OUT -->
-    <h4>Project-wise Total IN/OUT</h4>
-    <canvas id="projectChart" height="130"></canvas>
+    <!-- Charts Row 3: Category & Vendor Insights -->
+    <div class="row g-4 mb-4">
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="glass-card chart-card">
+          <h6 class="mb-2 text-muted">🥧 Category-wise Expense</h6>
+          <div class="mb-1 small text-secondary">Understand where most money is going (materials, labor, logistics, etc.)</div>
+          <canvas id="categoryExpenseChart"></canvas>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="glass-card chart-card">
+          <h6 class="mb-2 text-muted">📊 Trend of Expenses per Category</h6>
+          <div class="mb-1 small text-secondary">Track changing spending habits over time</div>
+          <canvas id="categoryTrendChart"></canvas>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="glass-card chart-card">
+          <h6 class="mb-2 text-muted">📊 Top Vendors by Expense</h6>
+          <div class="mb-1 small text-secondary">Identify costly vendors</div>
+          <canvas id="vendorExpenseChart"></canvas>
+        </div>
+      </div>
+    </div>
 
-    <a href="/" class="btn btn-secondary">← Back to Projects</a>
+    <!-- Charts Row 4: Person Insights -->
+    <div class="row g-4 mb-4">
+      <div class="col-12 col-md-6 col-lg-6">
+        <div class="glass-card chart-card">
+          <h6 class="mb-2 text-muted">📈 Frequent Transaction Persons</h6>
+          <div class="mb-1 small text-secondary">Who you're doing the most business with (client/vendor view)</div>
+          <canvas id="freqPersonsChart"></canvas>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-lg-6">
+        <div class="glass-card chart-card">
+          <h6 class="mb-2 text-muted">📌 Unpaid Balances per Vendor</h6>
+          <div class="mb-1 small text-secondary">Outstanding liabilities</div>
+          <canvas id="unpaidVendorChart"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
-    // Pie Chart - IN vs OUT
-    new Chart(document.getElementById('inOutChart'), {
-      type: 'pie',
-      data: {
-        labels: {{ in_out_data | map(attribute='type') | list | tojson }},
-        datasets: [{
-          data: {{ in_out_data | map(attribute='total') | list | tojson }},
-          backgroundColor: ['#28a745', '#dc3545'],
-          hoverOffset: 20,
-          borderWidth: 1,
-          borderColor: '#fff'
-        }]
-      },
-      options: {
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              font: { size: 14 }
-            }
-          }
-        }
-      }
-    });
+    const animateCounter = (id, end) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      let start = 0;
+      const step = Math.ceil(end / 40);
+      const update = () => {
+        start += step;
+        el.textContent = (start >= end) ? end.toLocaleString() : start.toLocaleString();
+        if (start < end) requestAnimationFrame(update);
+      };
+      update();
+    };
 
-    // Bar Chart - Monthly Volume
-    new Chart(document.getElementById('volumeChart'), {
+    animateCounter('inCounterNumber', parseFloat('{{ total_in or 0 }}'));
+    animateCounter('outCounterNumber', parseFloat('{{ total_out or 0 }}'));
+    animateCounter('balanceCounterNumber', parseFloat('{{ balance or 0 }}'));
+    animateCounter('agreedCounterNumber', parseFloat('{{ agreed_cost or 0 }}'));
+    animateCounter('profitLossCounterNumber', parseFloat('{{ profit_loss or 0 }}'));
+
+    // Monthly Income vs Expenses
+    new Chart(document.getElementById('incomeExpenseChart'), {
       type: 'bar',
       data: {
-        labels: {{ monthly_volume | map(attribute='month') | list | tojson }},
-        datasets: [{
-          label: 'Transactions',
-          data: {{ monthly_volume | map(attribute='count') | list | tojson }},
-          backgroundColor: '#0d6efd',
-          borderRadius: 6,
-          barPercentage: 0.6
-        }]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: '#e9ecef'
-            }
-          },
-          x: {
-            grid: {
-              display: false
-            }
-          }
-        },
-        plugins: {
-          legend: { display: false }
-        }
-      }
-    });
-
-    // Line Chart - Cash Flow
-    new Chart(document.getElementById('cashFlowChart'), {
-      type: 'line',
-      data: {
-        labels: {{ cash_flow | map(attribute='month') | list | tojson }},
+        labels: {{ months|tojson }},
         datasets: [
-          {
-            label: 'IN',
-            data: {{ cash_flow | map(attribute='total_in') | list | tojson }},
-            borderColor: '#28a745',
-            backgroundColor: 'rgba(40, 167, 69, 0.1)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            borderWidth: 2
-          },
-          {
-            label: 'OUT',
-            data: {{ cash_flow | map(attribute='total_out') | list | tojson }},
-            borderColor: '#dc3545',
-            backgroundColor: 'rgba(220, 53, 69, 0.1)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            borderWidth: 2
-          }
+          { label: 'Income', data: {{ monthly_income|tojson }}, backgroundColor: 'rgba(13, 202, 240, 0.7)' },
+          { label: 'Expense', data: {{ monthly_expense|tojson }}, backgroundColor: 'rgba(220, 53, 69, 0.7)' }
         ]
       },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: '#e9ecef'
-            }
-          },
-          x: {
-            grid: {
-              display: false
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              font: { size: 14 }
-            }
-          }
-        }
-      }
+      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
     });
 
-    // Bar Chart - Project Totals
-    new Chart(document.getElementById('projectChart'), {
+    // Monthly Profit Trend
+    new Chart(document.getElementById('profitTrendChart'), {
+      type: 'line',
+      data: {
+        labels: {{ months|tojson }},
+        datasets: [
+          { label: 'Profit', data: {{ monthly_profit|tojson }}, borderColor: 'rgba(40,167,69,0.9)', backgroundColor: 'rgba(40,167,69,0.2)', fill: true }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    // Cumulative Balance Over Time
+    new Chart(document.getElementById('cumulativeBalanceChart'), {
+      type: 'line',
+      data: {
+        labels: {{ months|tojson }},
+        datasets: [
+          { label: 'Cumulative Balance', data: {{ cumulative_balance|tojson }}, borderColor: 'rgba(13,202,240,0.9)', backgroundColor: 'rgba(13,202,240,0.2)', fill: true }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    // Project-wise Income vs Expense
+    new Chart(document.getElementById('projectComparisonChart'), {
       type: 'bar',
       data: {
-        labels: {{ project_totals | map(attribute='project_name') | list | tojson }},
+        labels: {{ project_labels|tojson }},
         datasets: [
-          {
-            label: 'IN',
-            data: {{ project_totals | map(attribute='total_in') | list | tojson }},
-            backgroundColor: '#28a745',
-            borderRadius: { topLeft: 6, topRight: 6 },
-            barPercentage: 0.5
-          },
-          {
-            label: 'OUT',
-            data: {{ project_totals | map(attribute='total_out') | list | tojson }},
-            backgroundColor: '#dc3545',
-            borderRadius: { bottomLeft: 6, bottomRight: 6 },
-            barPercentage: 0.5
-          }
+          { label: 'Income', data: {{ project_income|tojson }}, backgroundColor: 'rgba(13,202,240,0.7)' },
+          { label: 'Expense', data: {{ project_expense|tojson }}, backgroundColor: 'rgba(220,53,69,0.7)' }
         ]
       },
       options: {
         responsive: true,
-        scales: {
-          x: { stacked: true, grid: { display: false } },
-          y: { stacked: true, grid: { color: '#e9ecef' }, beginAtZero: true }
-        },
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { font: { size: 14 } }
-          }
-        }
+        plugins: { legend: { position: 'top' } },
+        indexAxis: 'y',
+        scales: { x: { beginAtZero: true } }
       }
     });
-  </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    // Project Profit Margin %
+    new Chart(document.getElementById('projectMarginChart'), {
+      type: 'bar',
+      data: {
+        labels: {{ project_labels|tojson }},
+        datasets: [
+          { label: 'Profit Margin %', data: {{ project_margin|tojson }}, backgroundColor: 'rgba(40,167,69,0.7)' }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, max: 100 } } }
+    });
+
+    // Top 5 Profitable Projects
+    new Chart(document.getElementById('topProfitProjectsChart'), {
+      type: 'bar',
+      data: {
+        labels: {{ top_profit_labels|tojson }},
+        datasets: [
+          { label: 'Profit', data: {{ top_profit_values|tojson }}, backgroundColor: 'rgba(255,193,7,0.7)' }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    // Category-wise Expense (Pie)
+    new Chart(document.getElementById('categoryExpenseChart'), {
+      type: 'pie',
+      data: {
+        labels: {{ category_labels|tojson }},
+        datasets: [{ data: {{ category_expense|tojson }}, backgroundColor: [
+          'rgba(13,202,240,0.7)', 'rgba(40,167,69,0.7)', 'rgba(255,193,7,0.7)', 'rgba(111,66,193,0.7)', 'rgba(255,99,132,0.7)'
+        ] }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Category Expense Trend (Stacked Bar)
+    new Chart(document.getElementById('categoryTrendChart'), {
+      type: 'bar',
+      data: {
+        labels: {{ cat_trend_labels|tojson }},
+        datasets: [
+          {% for cat in cat_trend_data.keys() %}
+          { label: '{{ cat }}', data: {{ cat_trend_data[cat]|tojson }}, backgroundColor: 'rgba({{ loop.index0*50+13 }},{{ 202-loop.index0*30 }},{{ 240-loop.index0*40 }},0.7)' }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
+    });
+
+    // Top Vendors by Expense
+    new Chart(document.getElementById('vendorExpenseChart'), {
+      type: 'bar',
+      data: {
+        labels: {{ vendor_labels|tojson }},
+        datasets: [
+          { label: 'Expense', data: {{ vendor_expense|tojson }}, backgroundColor: 'rgba(220,53,69,0.7)' }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    // Frequent Transaction Persons
+    new Chart(document.getElementById('freqPersonsChart'), {
+      type: 'bar',
+      data: {
+        labels: {{ freq_labels|tojson }},
+        datasets: [
+          { label: 'Transactions', data: {{ freq_counts|tojson }}, backgroundColor: 'rgba(13,202,240,0.7)' }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    // Unpaid Balances per Vendor
+    new Chart(document.getElementById('unpaidVendorChart'), {
+      type: 'bar',
+      data: {
+        labels: {{ unpaid_labels|tojson }},
+        datasets: [
+          { label: 'Unpaid Balance', data: {{ unpaid_balances|tojson }}, backgroundColor: 'rgba(255,99,132,0.7)' }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+    });
+  </script>
 </body>
 </html>

@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .profile-container {
+    max-width: 600px;
+    margin: auto;
+  }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 1rem;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    transition: transform 0.2s ease;
+  }
+  .glass-card:hover {
+    transform: translateY(-2px);
+  }
+  .glass-card h5 {
+    font-weight: 600;
+    color: #0b5ed7;
+    margin-bottom: 1.5rem;
+  }
+  .form-label {
+    font-weight: 500;
+    color: #333;
+  }
+  .form-control {
+    border-radius: 1rem;
+    padding: 0.6rem 1rem;
+  }
+  .btn-rounded {
+    border-radius: 2rem;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .btn-primary:hover,
+  .btn-success:hover {
+    transform: translateY(-1px);
+  }
+  .logo-preview {
+    max-height: 60px;
+    object-fit: contain;
+    margin-top: 0.5rem;
+  }
+  @media (max-width: 576px) {
+    .glass-card {
+      padding: 1.2rem;
+    }
+  }
+</style>
+
+<div class="container py-4 profile-container">
+  <h2 class="text-center fw-bold mb-4" style="color: #000;">👤 User Profile</h2>
+
+  <!-- User Details -->
+  <div class="glass-card">
+    <h5><i class="bi bi-person-circle me-2"></i>Account</h5>
+    <form method="post" action="{{ url_for('profile') }}">
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input type="text" class="form-control" value="{{ user.username }}" readonly>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">New Password</label>
+        <input type="password" class="form-control" name="new_password" placeholder="Enter new password">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Confirm Password</label>
+        <input type="password" class="form-control" name="confirm_password" placeholder="Confirm new password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-rounded mt-2">
+        <i class="bi bi-shield-lock"></i> Update Password
+      </button>
+    </form>
+  </div>
+
+  <!-- Business Details -->
+  <div class="glass-card">
+    <h5><i class="bi bi-building me-2"></i>Business Details</h5>
+    <form method="post" action="{{ url_for('profile') }}" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label class="form-label">Business Name</label>
+        <input type="text" class="form-control" name="business_name" value="{{ business.business_name }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Address</label>
+        <input type="text" class="form-control" name="address" value="{{ business.address }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Phone</label>
+        <input type="text" class="form-control" name="phone" value="{{ business.phone }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" name="email" value="{{ business.email }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Logo</label>
+        <input type="file" class="form-control" name="logo">
+        {% if business.logo_path %}
+          <img src="{{ url_for('static', filename=business.logo_path) }}" alt="Logo" class="logo-preview">
+        {% endif %}
+      </div>
+      <button type="submit" name="update_business" value="1" class="btn btn-success btn-rounded mt-2">
+        <i class="bi bi-upload"></i> Update Business
+      </button>
+    </form>
+  </div>
+  <div class="mt-4">
+        <a href="/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left-circle"></i> Back to Projects</a>
+      </div>
+</div>
+
+{% endblock %}

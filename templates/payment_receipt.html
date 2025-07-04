@@ -1,0 +1,101 @@
+<!-- payment_receipt.html: Styled for modal and PDF -->
+<style>
+  #receipt-content {
+    font-family: 'Segoe UI', sans-serif;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 1.8rem;
+    color: #333;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    max-width: 600px;
+    margin: auto;
+    font-size: 0.95rem;
+  }
+
+  #receipt-content h4 {
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: #0b5ed7;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  #receipt-content hr {
+    border: none;
+    border-top: 1px solid #ccc;
+    margin: 1rem 0;
+  }
+
+  #receipt-content strong {
+    display: inline-block;
+    width: 150px;
+    color: #222;
+  }
+
+  #receipt-content a {
+    color: #0b5ed7;
+    text-decoration: none;
+  }
+
+  #receipt-content a:hover {
+    text-decoration: underline;
+  }
+
+  #receipt-content .footer {
+    font-size: 0.85rem;
+    color: #888;
+    text-align: center;
+    margin-top: 1rem;
+  }
+
+  @media (max-width: 576px) {
+    #receipt-content {
+      padding: 1.2rem;
+      font-size: 0.9rem;
+    }
+    #receipt-content strong {
+      width: 120px;
+    }
+  }
+</style>
+
+{% if pdf_only %}
+    <div id="receipt-content">
+        <h4>Payment Receipt</h4>
+        <hr>
+        <strong>Payment Type:</strong> {{ payment.type }}<br>
+        <strong>Amount:</strong> {{ payment.amount }} /-<br>
+        <strong>Person:</strong> {{ payment.person_name }}<br>
+        <strong>Contact:</strong> {{ payment.contact_info }}<br>
+        <strong>Date:</strong> {{ payment.date }}<br>
+        <strong>Reason:</strong> {{ payment.reason }}<br>
+        <strong>Payment Method:</strong> {{ payment.payment_method }}<br>
+        <hr>
+        <div style="font-size:0.9em;color:#888;">Generated in inoutbook on {{ now }}</div>
+    </div>
+{% else %}
+    <div id="receipt-content">
+        <h4>Payment Receipt</h4>
+        <hr>
+        <strong>Business:</strong> {{ business.business_name }}<br>
+        <strong>Address:</strong> {{ business.address }}<br>
+        <strong>Phone:</strong> {{ business.phone }}<br>
+        <strong>Email:</strong> {{ business.email }}<br>
+        <hr>
+        <strong>Project:</strong> {{ project.name }}<br>
+        <strong>Description:</strong> {{ project.description }}<br>
+        <hr>
+        <strong>Payment Type:</strong> {{ payment.type }}<br>
+        <strong>Amount:</strong> {{ payment.amount }} /-<br>
+        <strong>Person:</strong> {{ payment.person_name }}<br>
+        <strong>Contact:</strong> {{ payment.contact_info }}<br>
+        <strong>Date:</strong> {{ payment.date }}<br>
+        <strong>Reason:</strong> {{ payment.reason }}<br>
+        <strong>Payment Method:</strong> {{ payment.payment_method }}<br>
+        {% if payment.file_path %}
+        <strong>Attachment:</strong> <a href="/{{ payment.file_path }}" target="_blank">View</a><br>
+        {% endif %}
+        <hr>
+        <div style="font-size:0.9em;color:#888;">Generated in inoutbook on {{ now }}</div>
+    </div>
+{% endif %}

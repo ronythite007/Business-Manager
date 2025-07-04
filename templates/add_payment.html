@@ -119,6 +119,35 @@
     </div>
   </div>
 
+  <!-- Modal for Payment Receipt -->
+ <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content rounded-4 shadow-sm">
+      <!-- Header -->
+      <div class="modal-header bg-light border-0 rounded-top-4">
+        <h5 class="modal-title fw-bold text-primary" id="receiptModalLabel">
+        </h5>
+        <button type="button" class="btn-close" id="receipt-modal-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body px-4 py-3" id="receipt-modal-body" style="font-size: 0.95rem;">
+        <!-- Receipt content injected dynamically -->
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer bg-light d-flex flex-column flex-sm-row justify-content-between gap-2 px-4 py-3 border-0 rounded-bottom-4">
+        <a id="download-pdf-btn" href="#" class="btn btn-outline-primary w-100 w-sm-auto d-flex align-items-center justify-content-center gap-2" target="_blank">
+          <i class="bi bi-file-earmark-pdf"></i> <span>Download PDF</span>
+        </a>
+        <a id="whatsapp-btn" href="#" class="btn btn-success w-100 w-sm-auto d-flex align-items-center justify-content-center gap-2" target="_blank">
+          <i class="bi bi-whatsapp"></i> <span>Send via WhatsApp</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     // Prefill type if provided in query string
@@ -146,6 +175,40 @@
       } else {
         alert('Contact Picker API not supported on this device/browser.');
       }
+    }
+
+    // AJAX form submission for Add Payment
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(form);
+      fetch(window.location.pathname, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Inject receipt HTML
+        document.getElementById('receipt-modal-body').innerHTML = data.receipt_html;
+        // Set PDF and WhatsApp URLs
+        document.getElementById('download-pdf-btn').href = data.pdf_url;
+        document.getElementById('whatsapp-btn').href = data.whatsapp_url;
+        // Show modal
+        var receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
+        receiptModal.show();
+      })
+      .catch(err => {
+        alert('Error adding payment. Please try again.');
+      });
+    });
+
+    // Redirect to project details when modal is closed via cross icon
+    const closeBtn = document.getElementById('receipt-modal-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function() {
+        window.location.href = "/project/{{ project_id }}";
+      });
     }
   </script>
 </body>

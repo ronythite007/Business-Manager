@@ -1,6 +1,6 @@
 # app.py
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from db_connection import get_sql_connection
@@ -14,10 +14,30 @@ from werkzeug.utils import secure_filename
 
 from flask import send_from_directory
 from flask import send_file
+from flask_jwt_extended import (
+    JWTManager, create_access_token, create_refresh_token,
+    jwt_required, get_jwt_identity, set_access_cookies, set_refresh_cookies,
+    unset_jwt_cookies
+)
+from datetime import timedelta
+from markupsafe import Markup
+from urllib.parse import quote_plus
 
 app = Flask(__name__)
 
 app.secret_key = 'your_secret_key_here'  # Set a strong secret key for session management
+
+# JWT Configuration
+app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key_here'
+app.config['JWT_TOKEN_LOCATION'] = ['cookies']
+app.config['JWT_ACCESS_COOKIE_PATH'] = '/api/'
+app.config['JWT_REFRESH_COOKIE_PATH'] = '/token/refresh'
+app.config['JWT_COOKIE_SECURE'] = False  # Set to True in production (HTTPS)
+app.config['JWT_COOKIE_HTTPONLY'] = True
+app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=15)
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
+jwt = JWTManager(app)
 
 #---------------Upload Folders---------------------------------------------------------------------------------------------------------
 
@@ -183,13 +203,11 @@ def add_payment(project_id):
     if request.method == 'POST':
         file_path = None
         file = request.files.get('file')
-
         if file and file.filename and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             saved_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(saved_path)
-            file_path = f'uploads/{filename}'  
-
+            file_path = f'uploads/{filename}'
         data = (
             project_id,
             request.form['type'],
@@ -201,7 +219,6 @@ def add_payment(project_id):
             request.form['payment_method'],
             file_path
         )
-
         conn = get_sql_connection()
         cursor = conn.cursor()
         cursor.execute("""
@@ -209,14 +226,67 @@ def add_payment(project_id):
             (project_id, type, amount, person_name, contact_info, date, reason, payment_method, file_path)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, data)
+        payment_id = cursor.lastrowid
         conn.commit()
         cursor.close()
+        # AJAX: return receipt HTML, PDF URL, WhatsApp URL
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return redirect(url_for('payment_receipt', payment_id=payment_id))
         return redirect(url_for('view_project', project_id=project_id))
-
     return render_template('add_payment.html', project_id=project_id)
 
-
-
+@app.route('/payment/<int:payment_id>/receipt')
+@login_required
+def payment_receipt(payment_id):
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
+    # Get payment
+    cursor.execute("SELECT * FROM payments WHERE id = %s", (payment_id,))
+    payment = cursor.fetchone()
+    if not payment:
+        cursor.close()
+        return "Payment not found", 404
+    # Get project
+    cursor.execute("SELECT * FROM projects WHERE id = %s", (payment['project_id'],))
+    project = cursor.fetchone()
+    # Get business details
+    cursor.execute("SELECT * FROM business_details WHERE user_id = %s", (session['user_id'],))
+    business = cursor.fetchone()
+    cursor.close()
+    # WhatsApp message (plain, simple, no emoji, no bold, no separators)
+    wa_msg = (
+        f"PAYMENT RECEIPT%0A"
+        f"BUSINESS: {business['business_name']}%0A"
+        f"ADDRESS: {business['address']}%0A"
+        f"PHONE: {business['phone']}%0A"
+        f"EMAIL: {business['email']}%0A"
+        f"PROJECT: {project['name']}%0A"
+        f"DESCRIPTION: {project['description']}%0A"
+        f"PAYMENT TYPE: {payment['type']}%0A"
+        f"AMOUNT: ₹{payment['amount']:.2f}%0A"
+        f"PERSON: {payment['person_name']}%0A"
+        f"CONTACT: {payment['contact_info']}%0A"
+        f"DATE: {payment['date']}%0A"
+        f"REASON: {payment['reason']}%0A"
+        f"METHOD: {payment['payment_method']}%0A"
+        f"Sent from InOutBook App"
+    )
+    wa_url = f"https://wa.me/?text={wa_msg}"
+    # Render HTML for modal
+    html = render_template('payment_receipt.html', payment=payment, project=project, business=business, now=datetime.datetime.now().strftime('%Y-%m-%d %H:%M'), pdf_only=False)
+    # If PDF requested
+    if request.args.get('pdf') == '1':
+        pdf_html = render_template('payment_receipt.html', payment=payment, project=project, business=business, now=datetime.datetime.now().strftime('%Y-%m-%d %H:%M'), pdf_only=True)
+        pdf_file = BytesIO()
+        pisa.CreatePDF(BytesIO(pdf_html.encode("utf-8")), dest=pdf_file)
+        pdf_file.seek(0)
+        return send_file(pdf_file, as_attachment=True, download_name=f"payment_{payment_id}_receipt.pdf", mimetype='application/pdf')
+    # Otherwise, return HTML and WhatsApp URL
+    return jsonify({
+        'receipt_html': html,
+        'pdf_url': url_for('payment_receipt', payment_id=payment_id, pdf=1),
+        'whatsapp_url': wa_url
+    })
 
 # ------------------------------------------------------------------------------------------------------------------------
 
@@ -565,53 +635,174 @@ def uploaded_file(filename):
 
 #-----------------Dashboard-------------------------------------------------------------------------------------------------------
 
-# @app.route('/dashboard')
-# def dashboard():
-#     conn = get_sql_connection()
-#     cursor = conn.cursor(dictionary=True)
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    user_id = session['user_id']
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
 
-#     # Get total IN and OUT
-#     cursor.execute("SELECT type, SUM(amount) as total FROM payments GROUP BY type")
-#     in_out_data = cursor.fetchall()
+    # Total IN and OUT (all projects)
+    cursor.execute("SELECT type, SUM(amount) as total FROM payments WHERE project_id IN (SELECT id FROM projects WHERE user_id = %s) GROUP BY type", (user_id,))
+    sums = {row['type']: float(row['total']) for row in cursor.fetchall()}
+    total_in = sums.get('IN', 0)
+    total_out = sums.get('OUT', 0)
+    balance = total_in - total_out
 
-#     # Monthly transaction volume
-#     cursor.execute("""
-#         SELECT DATE_FORMAT(date, '%Y-%m') as month, COUNT(*) as count
-#         FROM payments
-#         GROUP BY month
-#         ORDER BY month
-#     """)
-#     monthly_volume = cursor.fetchall()
+    # Agreed cost (sum of finalized_cost for all projects)
+    cursor.execute("SELECT SUM(finalized_cost) as agreed_cost FROM projects WHERE user_id = %s", (user_id,))
+    agreed_cost = cursor.fetchone()['agreed_cost'] or 0
+    agreed_cost = float(agreed_cost)
 
-#     # Cash flow over time (net IN - OUT)
-#     cursor.execute("""
-#         SELECT DATE_FORMAT(date, '%Y-%m') as month,
-#                SUM(CASE WHEN type='IN' THEN amount ELSE 0 END) as total_in,
-#                SUM(CASE WHEN type='OUT' THEN amount ELSE 0 END) as total_out
-#         FROM payments
-#         GROUP BY month
-#         ORDER BY month
-#     """)
-#     cash_flow = cursor.fetchall()
+    # Profit/Loss (income - expense - agreed cost)
+    profit_loss = total_in - total_out - agreed_cost
 
-#     # Project-wise IN/OUT
-#     cursor.execute("""
-#         SELECT p.name as project_name,
-#                SUM(CASE WHEN pay.type='IN' THEN pay.amount ELSE 0 END) as total_in,
-#                SUM(CASE WHEN pay.type='OUT' THEN pay.amount ELSE 0 END) as total_out
-#         FROM payments pay
-#         JOIN projects p ON pay.project_id = p.id
-#         GROUP BY pay.project_id
-#     """)
-#     project_totals = cursor.fetchall()
+    # Monthly income/expense/profit (last 12 months)
+    cursor.execute("""
+        SELECT DATE_FORMAT(date, '%Y-%m') as month, 
+               SUM(CASE WHEN type='IN' THEN amount ELSE 0 END) as income,
+               SUM(CASE WHEN type='OUT' THEN amount ELSE 0 END) as expense
+        FROM payments 
+        WHERE project_id IN (SELECT id FROM projects WHERE user_id = %s)
+        GROUP BY month ORDER BY month DESC LIMIT 12
+    """, (user_id,))
+    rows = cursor.fetchall()
+    months = [row['month'] for row in reversed(rows)]
+    monthly_income = [float(row['income']) for row in reversed(rows)]
+    monthly_expense = [float(row['expense']) for row in reversed(rows)]
+    monthly_profit = [float(row['income']) - float(row['expense']) for row in reversed(rows)]
 
-#     cursor.close()
+    # Cumulative balance over time
+    cumulative_balance = []
+    running = 0
+    for i in range(len(monthly_income)):
+        running += monthly_income[i] - monthly_expense[i]
+        cumulative_balance.append(running)
 
-#     return render_template('dashboard.html',
-#                            in_out_data=in_out_data,
-#                            monthly_volume=monthly_volume,
-#                            cash_flow=cash_flow,
-#                            project_totals=project_totals)
+    # Category-wise expense (top 5)
+    cursor.execute("""
+        SELECT reason as category, SUM(amount) as total 
+        FROM payments 
+        WHERE type='OUT' AND project_id IN (SELECT id FROM projects WHERE user_id = %s)
+        GROUP BY reason ORDER BY total DESC LIMIT 5
+    """, (user_id,))
+    cat_rows = cursor.fetchall()
+    category_labels = [row['category'] for row in cat_rows]
+    category_expense = [float(row['total']) for row in cat_rows]
+
+    # Category expense trend (stacked bar, last 6 months)
+    cursor.execute("SELECT DISTINCT reason FROM payments WHERE type='OUT' AND project_id IN (SELECT id FROM projects WHERE user_id = %s)", (user_id,))
+    all_categories = [row['reason'] for row in cursor.fetchall()]
+    cat_trend = {cat: [] for cat in all_categories}
+    for m in months[-6:]:
+        cursor.execute("""
+            SELECT reason, SUM(amount) as total FROM payments 
+            WHERE type='OUT' AND project_id IN (SELECT id FROM projects WHERE user_id = %s) AND DATE_FORMAT(date, '%Y-%m') = %s
+            GROUP BY reason
+        """, (user_id, m))
+        month_data = {row['reason']: float(row['total']) for row in cursor.fetchall()}
+        for cat in all_categories:
+            cat_trend[cat].append(month_data.get(cat, 0))
+    cat_trend_labels = months[-6:]
+    cat_trend_data = cat_trend
+
+    # Project-wise income/expense (top 5 projects)
+    cursor.execute("""
+        SELECT p.name as project, 
+               SUM(CASE WHEN pay.type='IN' THEN pay.amount ELSE 0 END) as income,
+               SUM(CASE WHEN pay.type='OUT' THEN pay.amount ELSE 0 END) as expense
+        FROM projects p
+        LEFT JOIN payments pay ON pay.project_id = p.id
+        WHERE p.user_id = %s
+        GROUP BY p.id, p.name
+        ORDER BY income DESC LIMIT 5
+    """, (user_id,))
+    proj_rows = cursor.fetchall()
+    project_labels = [row['project'] for row in proj_rows]
+    project_income = [float(row['income']) for row in proj_rows]
+    project_expense = [float(row['expense']) for row in proj_rows]
+    project_profit = [float(row['income']) - float(row['expense']) for row in proj_rows]
+    project_margin = [round((float(row['income']) - float(row['expense'])) / float(row['income']) * 100, 2) if float(row['income']) > 0 else 0 for row in proj_rows]
+
+    # Top 5 profitable projects
+    top_profit_projects = sorted(
+        zip(project_labels, project_profit), key=lambda x: x[1], reverse=True)[:5]
+    top_profit_labels = [x[0] for x in top_profit_projects]
+    top_profit_values = [x[1] for x in top_profit_projects]
+
+    # Top vendors by expense (person_name, OUT)
+    cursor.execute("""
+        SELECT person_name, SUM(amount) as total FROM payments 
+        WHERE type='OUT' AND project_id IN (SELECT id FROM projects WHERE user_id = %s)
+        GROUP BY person_name ORDER BY total DESC LIMIT 5
+    """, (user_id,))
+    vendor_rows = cursor.fetchall()
+    vendor_labels = [row['person_name'] for row in vendor_rows]
+    vendor_expense = [float(row['total']) for row in vendor_rows]
+
+    # Frequent transaction persons (IN+OUT count)
+    cursor.execute("""
+        SELECT person_name, COUNT(*) as count FROM payments 
+        WHERE project_id IN (SELECT id FROM projects WHERE user_id = %s)
+        GROUP BY person_name ORDER BY count DESC LIMIT 5
+    """, (user_id,))
+    freq_rows = cursor.fetchall()
+    freq_labels = [row['person_name'] for row in freq_rows]
+    freq_counts = [int(row['count']) for row in freq_rows]
+
+    # Unpaid balances per vendor (if OUT > IN for a person)
+    cursor.execute("""
+        SELECT person_name, 
+               SUM(CASE WHEN type='IN' THEN amount ELSE 0 END) as paid_in,
+               SUM(CASE WHEN type='OUT' THEN amount ELSE 0 END) as paid_out
+        FROM payments 
+        WHERE project_id IN (SELECT id FROM projects WHERE user_id = %s)
+        GROUP BY person_name
+    """, (user_id,))
+    unpaid_rows = cursor.fetchall()
+    unpaid_labels = []
+    unpaid_balances = []
+    for row in unpaid_rows:
+        unpaid = float(row['paid_out'] or 0) - float(row['paid_in'] or 0)
+        if unpaid > 0:
+            unpaid_labels.append(row['person_name'])
+            unpaid_balances.append(unpaid)
+
+    # AI insight placeholder
+    ai_insight = "Your business dashboard is up to date!"
+
+    cursor.close()
+    return render_template(
+        'dashboard.html',
+        total_in=total_in,
+        total_out=total_out,
+        balance=balance,
+        agreed_cost=agreed_cost,
+        profit_loss=profit_loss,
+        ai_insight=ai_insight,
+        months=months,
+        monthly_income=monthly_income,
+        monthly_expense=monthly_expense,
+        monthly_profit=monthly_profit,
+        cumulative_balance=cumulative_balance,
+        category_labels=category_labels,
+        category_expense=category_expense,
+        cat_trend_labels=cat_trend_labels,
+        cat_trend_data=cat_trend_data,
+        project_labels=project_labels,
+        project_income=project_income,
+        project_expense=project_expense,
+        project_profit=project_profit,
+        project_margin=project_margin,
+        top_profit_labels=top_profit_labels,
+        top_profit_values=top_profit_values,
+        vendor_labels=vendor_labels,
+        vendor_expense=vendor_expense,
+        freq_labels=freq_labels,
+        freq_counts=freq_counts,
+        unpaid_labels=unpaid_labels,
+        unpaid_balances=unpaid_balances
+    )
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -798,6 +989,109 @@ def worker_payments(worker_id):
     payments = cursor.fetchall()
     cursor.close()
     return render_template('worker_payments.html', worker=worker, payments=payments)
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    user_id = session['user_id']
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
+    # Get user details
+    cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+    user = cursor.fetchone()
+    # Get business details
+    cursor.execute('SELECT * FROM business_details WHERE user_id = %s', (user_id,))
+    business = cursor.fetchone()
+    message = None
+    if request.method == 'POST':
+        # Change password
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        if new_password or confirm_password:
+            if new_password != confirm_password:
+                flash('Passwords do not match.', 'danger')
+            elif len(new_password) < 4:
+                flash('Password must be at least 4 characters.', 'danger')
+            else:
+                password_hash = generate_password_hash(new_password)
+                cursor.execute('UPDATE users SET password_hash = %s WHERE id = %s', (password_hash, user_id))
+                conn.commit()
+                flash('Password updated successfully.', 'success')
+        # Update business details
+        if request.form.get('update_business'):
+            business_name = request.form.get('business_name')
+            address = request.form.get('address')
+            phone = request.form.get('phone')
+            email = request.form.get('email')
+            logo_file = request.files.get('logo')
+            logo_path = business['logo'] if business and business.get('logo') else None
+            if logo_file and logo_file.filename:
+                filename = secure_filename(f"user{user_id}_" + logo_file.filename)
+                logo_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                logo_file.save(logo_path)
+            if business:
+                cursor.execute('''
+                    UPDATE business_details SET business_name=%s, address=%s, phone=%s, email=%s, logo=%s WHERE user_id=%s
+                ''', (business_name, address, phone, email, logo_path, user_id))
+            else:
+                cursor.execute('''
+                    INSERT INTO business_details (user_id, business_name, address, phone, email, logo) VALUES (%s, %s, %s, %s, %s, %s)
+                ''', (user_id, business_name, address, phone, email, logo_path))
+            conn.commit()
+            flash('Business details updated.', 'success')
+        # Refresh data after update
+        cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+        user = cursor.fetchone()
+        cursor.execute('SELECT * FROM business_details WHERE user_id = %s', (user_id,))
+        business = cursor.fetchone()
+    cursor.close()
+    return render_template('profile.html', user=user, business=business)
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+    user = cursor.fetchone()
+    if user and check_password_hash(user['password_hash'], password):
+        access_token = create_access_token(identity=user['id'])
+        refresh_token = create_refresh_token(identity=user['id'])
+        resp = jsonify({'login': True})
+        set_access_cookies(resp, access_token)
+        set_refresh_cookies(resp, refresh_token)
+        return resp
+    else:
+        return jsonify({'login': False, 'msg': 'Invalid credentials'}), 401
+
+@app.route('/api/token/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def api_token_refresh():
+    current_user = get_jwt_identity()
+    access_token = create_access_token(identity=current_user)
+    resp = jsonify({'refresh': True})
+    set_access_cookies(resp, access_token)
+    return resp
+
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    resp = jsonify({'logout': True})
+    unset_jwt_cookies(resp)
+    return resp
+
+# Example protected API route
+@app.route('/api/projects', methods=['GET'])
+@jwt_required()
+def api_projects():
+    user_id = get_jwt_identity()
+    conn = get_sql_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM projects WHERE user_id = %s', (user_id,))
+    projects = cursor.fetchall()
+    cursor.close()
+    return jsonify(projects)
 
 if __name__ == '__main__':
     app.run(debug=True)
