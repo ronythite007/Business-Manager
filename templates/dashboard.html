@@ -6,422 +6,665 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    :root {
+      --primary: #1b72d6;
+      --secondary: #7f6d9e;
+      --success: #6fcaac;
+      --danger: #eb8e8e;
+      --warning: #faca77;
+      --info: #7eaaf0;
+      --light: #f8fafc;
+      --dark: #1e293b;
+      --text: #334155;
+    }
+    
     body {
-      background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
+      background-color: #f8fafc;
       min-height: 100vh;
-      font-family: 'Segoe UI', sans-serif;
-      color: #222;
-      overflow-x: hidden;
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
     }
-    .glass-bg {
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      z-index: 0;
-      pointer-events: none;
-      background: radial-gradient(circle at 80% 10%, #b6e0fe3b 0%, transparent 60%),
-                  radial-gradient(circle at 10% 80%, #fbc2eb3b 0%, transparent 60%);
+    
+    .dashboard-header {
+      margin: 1.5rem 0;
+      text-align: center;
     }
-    .glass-card {
-      background: rgba(255,255,255,0.88);
-      border-radius: 1.2rem;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-      padding: 1.6rem 1.2rem;
-      margin-bottom: 1.5rem;
-      transition: all 0.25s ease;
-      border: 1px solid #e9ecef;
-      position: relative;
-      z-index: 1;
+    
+    .dashboard-title {
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 0.3rem;
+      font-size: 1.5rem;
     }
-    .glass-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    
+    .dashboard-subtitle {
+      color: #64748b;
+      font-size: 0.9rem;
     }
+    
+    .summary-card {
+      background: white;
+      border-radius: 10px;
+      padding: 1.2rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+    }
+    
     .summary-icon {
-      font-size: 2.3rem;
-      opacity: 0.85;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--primary);
+    }
+    
+    .summary-title {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #64748b;
       margin-bottom: 0.3rem;
     }
-    .summary-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #0b5ed7;
-      margin-bottom: 0.2rem;
-    }
+    
     .summary-value {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: #212529;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.3rem;
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--dark);
+      margin-bottom: 0.3rem;
     }
-    .trend-up, .trend-down {
-      font-size: 1.2rem;
+    
+    .summary-note {
+      font-size: 0.75rem;
+      color: #94a3b8;
     }
-    .profit-badge, .loss-badge {
-      font-size: 0.8rem;
-      padding: 0.25rem 0.6rem;
-      border-radius: 1rem;
-      margin-left: 0.4rem;
+    
+    .trend-up {
+      color: var(--success);
     }
-    .profit-badge {
-      background: #d1e7dd;
-      color: #198754;
+    
+    .trend-down {
+      color: var(--danger);
     }
-    .loss-badge {
-      background: #f8d7da;
-      color: #dc3545;
-    }
-    .info-badge {
-      font-size: 0.82rem;
-      margin-top: 0.3rem;
-      color: #6c757d;
-    }
-    .ai-insight {
-      font-size: 1rem;
-      color: #198754;
+    
+    .badge {
+      font-size: 0.7rem;
       font-weight: 500;
-      margin-top: 0.5rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
     }
+    
+    .badge-success {
+      background-color: #ecfdf5;
+      color: var(--success);
+    }
+    
+    .badge-danger {
+      background-color: #fef2f2;
+      color: var(--danger);
+    }
+    
+    .chart-container {
+      position: relative;
+      width: 100%;
+      min-height: 250px;
+      margin: 0 auto;
+    }
+    
     .chart-card {
-      min-height: 320px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      background: white;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
     }
-    @media (max-width: 768px) {
+    
+    .chart-title {
+      font-weight: 500;
+      color: var(--dark);
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+    
+    .chart-subtitle {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-bottom: 0.8rem;
+    }
+    
+    .section-title {
+      font-weight: 500;
+      color: var(--dark);
+      margin: 1.5rem 0 0.8rem;
+      font-size: 1.1rem;
+      position: relative;
+      padding-left: 0.8rem;
+    }
+    
+    .section-title:before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 14px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+    
+    .ai-insight {
+      background: #f8fafc;
+      border-left: 3px solid var(--primary);
+      padding: 0.6rem;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.85rem;
+      margin-top: 0.8rem;
+    }
+    
+    /* Desktop specific styles */
+    @media (min-width: 992px) {
+      .dashboard-title {
+        font-size: 1.8rem;
+      }
+      
+      .summary-card {
+        padding: 1.5rem;
+        border-radius: 12px;
+      }
+      
+      .summary-icon {
+        font-size: 1.8rem;
+      }
+      
       .summary-value {
-        font-size: 1.3rem;
+        font-size: 1.8rem;
       }
-      .glass-card {
-        padding: 1rem;
-      }
+      
       .chart-card {
-        min-height: 250px;
+        padding: 1.2rem;
+        border-radius: 12px;
+      }
+      
+      .chart-container {
+        min-height: 300px;
+      }
+      
+      .chart-title {
+        font-size: 1.1rem;
+      }
+    }
+    
+    /* Mobile specific adjustments */
+    @media (max-width: 576px) {
+      .chart-container {
+        min-height: 220px;
+      }
+      
+      .section-title {
+        margin: 1.2rem 0 0.5rem;
       }
     }
   </style>
 </head>
 <body>
-  <div class="glass-bg"></div>
-  <div class="container py-4 position-relative">
-    <h2 class="mb-4 text-center fw-bold text-primary">📈 Business Dashboard – inoutbook</h2>
+  <div class="container py-2">
+    <div class="dashboard-header">
+      <h2 class="dashboard-title">Business Dashboard</h2>
+      <div class="dashboard-subtitle">Financial overview and analytics</div>
+    </div>
 
-    <div class="row g-3 mb-4">
+    <!-- Summary Cards -->
+    <div class="row g-2 mb-3">
       <div class="col-6 col-md-4 col-lg-2">
-        <div class="glass-card text-center">
-          <div class="summary-icon text-primary"><i class="bi bi-cash-stack"></i></div>
-          <div class="summary-title">Total IN</div>
+        <div class="summary-card text-center">
+          <div class="summary-icon"><i class="bi bi-cash-stack"></i></div>
+          <div class="summary-title">Total Income</div>
           <div class="summary-value">₹ <span id="inCounterNumber">{{ total_in or 0 }}</span></div>
-          <span class="info-badge">Income from all sources</span>
+          <div class="summary-note">From all sources</div>
         </div>
       </div>
       <div class="col-6 col-md-4 col-lg-2">
-        <div class="glass-card text-center">
-          <div class="summary-icon text-danger"><i class="bi bi-cash-coin"></i></div>
-          <div class="summary-title">Total OUT</div>
+        <div class="summary-card text-center">
+          <div class="summary-icon"><i class="bi bi-cash-coin"></i></div>
+          <div class="summary-title">Total Expense</div>
           <div class="summary-value">₹ <span id="outCounterNumber">{{ total_out or 0 }}</span></div>
-          <span class="info-badge">Total expenses made</span>
+          <div class="summary-note">All expenses</div>
         </div>
       </div>
       <div class="col-6 col-md-4 col-lg-2">
-        <div class="glass-card text-center">
-          <div class="summary-icon text-success"><i class="bi bi-wallet2"></i></div>
+        <div class="summary-card text-center">
+          <div class="summary-icon"><i class="bi bi-wallet2"></i></div>
           <div class="summary-title">Balance</div>
           <div class="summary-value">₹ <span id="balanceCounterNumber">{{ balance or 0 }}</span></div>
-          <span class="info-badge">Net cash in hand</span>
+          <div class="summary-note">Net cash in hand</div>
         </div>
       </div>
       <div class="col-6 col-md-4 col-lg-2">
-        <div class="glass-card text-center">
-          <div class="summary-icon text-info"><i class="bi bi-clipboard-data"></i></div>
+        <div class="summary-card text-center">
+          <div class="summary-icon"><i class="bi bi-clipboard-data"></i></div>
           <div class="summary-title">Agreed Cost</div>
           <div class="summary-value">₹ <span id="agreedCounterNumber">{{ agreed_cost or 0 }}</span></div>
-          <span class="info-badge">Client approved cost</span>
+          <div class="summary-note">Client approved</div>
         </div>
       </div>
       <div class="col-6 col-md-4 col-lg-2">
-        <div class="glass-card text-center">
-          <div class="summary-icon text-warning"><i class="bi bi-graph-up-arrow"></i></div>
+        <div class="summary-card text-center">
+          <div class="summary-icon"><i class="bi bi-graph-up-arrow"></i></div>
           <div class="summary-title">Profit/Loss</div>
           <div class="summary-value">₹ <span id="profitLossCounterNumber">{{ profit_loss or 0 }}</span>
             {% if profit_loss|float > 0 %}
-              <span class="trend-up"><i class="bi bi-arrow-up-right-circle"></i></span>
-              <span class="profit-badge">Profit</span>
+              <span class="trend-up"><i class="bi bi-arrow-up-right"></i></span>
+              <span class="badge badge-success">Profit</span>
             {% elif profit_loss|float < 0 %}
-              <span class="trend-down"><i class="bi bi-arrow-down-right-circle"></i></span>
-              <span class="loss-badge">Loss</span>
+              <span class="trend-down"><i class="bi bi-arrow-down-right"></i></span>
+              <span class="badge badge-danger">Loss</span>
             {% endif %}
           </div>
-          <span class="info-badge">Difference of IN - OUT</span>
+          <div class="summary-note">Income - Expense</div>
         </div>
       </div>
       <div class="col-12 col-md-8 col-lg-2">
-        <div class="glass-card text-center">
-          <div class="summary-icon text-success"><i class="bi bi-lightbulb"></i></div>
-          <div class="summary-title">AI Insights</div>
+        <div class="summary-card text-center">
+          <div class="summary-icon"><i class="bi bi-lightbulb"></i></div>
+          <div class="summary-title">Insight</div>
           <div class="ai-insight">{{ ai_insight or 'Your profit increased 12% this month.' }}</div>
         </div>
       </div>
     </div>
 
-    <!-- Charts Row 1: Financial Overview -->
-    <div class="row g-4 mb-4">
+    <!-- Financial Overview -->
+    <h4 class="section-title">Financial Overview</h4>
+    <div class="row g-2 mb-3">
       <div class="col-12 col-lg-6">
-        <div class="glass-card chart-card">
-          <h6 class="mb-2 text-muted">📊 Monthly Income vs Expenses</h6>
-          <div class="mb-1 small text-secondary">Shows cash flow trends and helps identify peak earning/spending months</div>
-          <canvas id="incomeExpenseChart"></canvas>
+        <div class="chart-card">
+          <h5 class="chart-title">Monthly Income vs Expenses</h5>
+          <div class="chart-subtitle">Shows cash flow trends by month</div>
+          <div class="chart-container">
+            <canvas id="incomeExpenseChart"></canvas>
+          </div>
         </div>
       </div>
       <div class="col-12 col-md-6 col-lg-3">
-        <div class="glass-card chart-card">
-          <h6 class="mb-2 text-muted">📈 Monthly Profit Trend</h6>
-          <div class="mb-1 small text-secondary">Tracks profitability and growth over time</div>
-          <canvas id="profitTrendChart"></canvas>
+        <div class="chart-card">
+          <h5 class="chart-title">Monthly Profit Trend</h5>
+          <div class="chart-subtitle">Tracks profitability over time</div>
+          <div class="chart-container">
+            <canvas id="profitTrendChart"></canvas>
+          </div>
         </div>
       </div>
       <div class="col-12 col-md-6 col-lg-3">
-        <div class="glass-card chart-card">
-          <h6 class="mb-2 text-muted">📉 Cumulative Balance Over Time</h6>
-          <div class="mb-1 small text-secondary">Visualizes running balance evolution</div>
-          <canvas id="cumulativeBalanceChart"></canvas>
+        <div class="chart-card">
+          <h5 class="chart-title">Cumulative Balance</h5>
+          <div class="chart-subtitle">Running balance evolution</div>
+          <div class="chart-container">
+            <canvas id="cumulativeBalanceChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Charts Row 2: Project Insights -->
-    <div class="row g-4 mb-4">
+    <!-- Project Insights -->
+    <h4 class="section-title">Project Insights</h4>
+    <div class="row g-2 mb-3">
       <div class="col-12 col-lg-6">
-        <div class="glass-card chart-card">
-          <h6 class="mb-2 text-muted">📊 Project-wise Income vs Expense</h6>
-          <div class="mb-1 small text-secondary">Reveals profitable and loss-making projects</div>
-          <canvas id="projectComparisonChart"></canvas>
+        <div class="chart-card">
+          <h5 class="chart-title">Project-wise Income vs Expense</h5>
+          <div class="chart-subtitle">Compare across projects</div>
+          <div class="chart-container">
+            <canvas id="projectComparisonChart"></canvas>
+          </div>
         </div>
       </div>
       <div class="col-12 col-md-6 col-lg-3">
-        <div class="glass-card chart-card">
-          <h6 class="mb-2 text-muted">📈 Project Profit Margin %</h6>
-          <div class="mb-1 small text-secondary">Percentage-based profitability indicator per project</div>
-          <canvas id="projectMarginChart"></canvas>
+        <div class="chart-card">
+          <h5 class="chart-title">Project Profit Margin %</h5>
+          <div class="chart-subtitle">Profitability by project</div>
+          <div class="chart-container">
+            <canvas id="projectMarginChart"></canvas>
+          </div>
         </div>
       </div>
       <div class="col-12 col-md-6 col-lg-3">
-        <div class="glass-card chart-card">
-          <h6 class="mb-2 text-muted">📌 Top 5 Profitable Projects</h6>
-          <div class="mb-1 small text-secondary">Focus on what’s working well</div>
-          <canvas id="topProfitProjectsChart"></canvas>
+        <div class="chart-card">
+          <h5 class="chart-title">Top Profitable Projects</h5>
+          <div class="chart-subtitle">Best performing projects</div>
+          <div class="chart-container">
+            <canvas id="topProfitProjectsChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Charts Row 3: Category & Vendor Insights -->
-    <div class="row g-4 mb-4">
+    <!-- Expense Analysis -->
+    <h4 class="section-title">Expense Analysis</h4>
+    <div class="row g-2 mb-3">
       <div class="col-12 col-md-6 col-lg-4">
-        <div class="glass-card chart-card">
-          <h6 class="mb-2 text-muted">🥧 Category-wise Expense</h6>
-          <div class="mb-1 small text-secondary">Understand where most money is going (materials, labor, logistics, etc.)</div>
-          <canvas id="categoryExpenseChart"></canvas>
+        <div class="chart-card">
+          <h5 class="chart-title">Category-wise Expense</h5>
+          <div class="chart-subtitle">Breakdown by category</div>
+          <div class="chart-container">
+            <canvas id="categoryExpenseChart"></canvas>
+          </div>
         </div>
       </div>
       <div class="col-12 col-md-6 col-lg-4">
-        <div class="glass-card chart-card">
-          <h6 class="mb-2 text-muted">📊 Trend of Expenses per Category</h6>
-          <div class="mb-1 small text-secondary">Track changing spending habits over time</div>
-          <canvas id="categoryTrendChart"></canvas>
+        <div class="chart-card">
+          <h5 class="chart-title">Expense Trend by Category</h5>
+          <div class="chart-subtitle">Monthly changes</div>
+          <div class="chart-container">
+            <canvas id="categoryTrendChart"></canvas>
+          </div>
         </div>
       </div>
       <div class="col-12 col-md-6 col-lg-4">
-        <div class="glass-card chart-card">
-          <h6 class="mb-2 text-muted">📊 Top Vendors by Expense</h6>
-          <div class="mb-1 small text-secondary">Identify costly vendors</div>
-          <canvas id="vendorExpenseChart"></canvas>
+        <div class="chart-card">
+          <h5 class="chart-title">Top Vendors by Expense</h5>
+          <div class="chart-subtitle">Highest spending vendors</div>
+          <div class="chart-container">
+            <canvas id="vendorExpenseChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Charts Row 4: Person Insights -->
-    <div class="row g-4 mb-4">
-      <div class="col-12 col-md-6 col-lg-6">
-        <div class="glass-card chart-card">
-          <h6 class="mb-2 text-muted">📈 Frequent Transaction Persons</h6>
-          <div class="mb-1 small text-secondary">Who you're doing the most business with (client/vendor view)</div>
-          <canvas id="freqPersonsChart"></canvas>
+    <!-- People & Transactions -->
+    <h4 class="section-title">People & Transactions</h4>
+    <div class="row g-2 mb-3">
+      <div class="col-12 col-md-6">
+        <div class="chart-card">
+          <h5 class="chart-title">Frequent Transaction Persons</h5>
+          <div class="chart-subtitle">Most active clients/vendors</div>
+          <div class="chart-container">
+            <canvas id="freqPersonsChart"></canvas>
+          </div>
         </div>
       </div>
-      <div class="col-12 col-md-6 col-lg-6">
-        <div class="glass-card chart-card">
-          <h6 class="mb-2 text-muted">📌 Unpaid Balances per Vendor</h6>
-          <div class="mb-1 small text-secondary">Outstanding liabilities</div>
-          <canvas id="unpaidVendorChart"></canvas>
+      <div class="col-12 col-md-6">
+        <div class="chart-card">
+          <h5 class="chart-title">Unpaid Balances</h5>
+          <div class="chart-subtitle">Outstanding vendor payments</div>
+          <div class="chart-container">
+            <canvas id="unpaidVendorChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
+    // Counter animation
     const animateCounter = (id, end) => {
       const el = document.getElementById(id);
       if (!el) return;
-      let start = 0;
-      const step = Math.ceil(end / 40);
-      const update = () => {
-        start += step;
-        el.textContent = (start >= end) ? end.toLocaleString() : start.toLocaleString();
-        if (start < end) requestAnimationFrame(update);
+      
+      const duration = 1000;
+      const start = 0;
+      const startTime = performance.now();
+      
+      const formatNumber = (num) => {
+        return num.toLocaleString('en-IN', {
+          maximumFractionDigits: 2
+        });
       };
-      update();
+      
+      const updateCounter = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const currentValue = start + (end - start) * progress;
+        
+        el.textContent = formatNumber(currentValue);
+        
+        if (progress < 1) {
+          requestAnimationFrame(updateCounter);
+        } else {
+          el.textContent = formatNumber(end);
+        }
+      };
+      
+      requestAnimationFrame(updateCounter);
     };
 
-    animateCounter('inCounterNumber', parseFloat('{{ total_in or 0 }}'));
-    animateCounter('outCounterNumber', parseFloat('{{ total_out or 0 }}'));
-    animateCounter('balanceCounterNumber', parseFloat('{{ balance or 0 }}'));
-    animateCounter('agreedCounterNumber', parseFloat('{{ agreed_cost or 0 }}'));
-    animateCounter('profitLossCounterNumber', parseFloat('{{ profit_loss or 0 }}'));
-
-    // Monthly Income vs Expenses
-    new Chart(document.getElementById('incomeExpenseChart'), {
-      type: 'bar',
-      data: {
-        labels: {{ months|tojson }},
-        datasets: [
-          { label: 'Income', data: {{ monthly_income|tojson }}, backgroundColor: 'rgba(13, 202, 240, 0.7)' },
-          { label: 'Expense', data: {{ monthly_expense|tojson }}, backgroundColor: 'rgba(220, 53, 69, 0.7)' }
-        ]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+    // Initialize counters
+    document.addEventListener('DOMContentLoaded', () => {
+      animateCounter('inCounterNumber', parseFloat('{{ total_in or 0 }}'));
+      animateCounter('outCounterNumber', parseFloat('{{ total_out or 0 }}'));
+      animateCounter('balanceCounterNumber', parseFloat('{{ balance or 0 }}'));
+      animateCounter('agreedCounterNumber', parseFloat('{{ agreed_cost or 0 }}'));
+      animateCounter('profitLossCounterNumber', Math.abs(parseFloat('{{ profit_loss or 0 }}')));
     });
 
-    // Monthly Profit Trend
-    new Chart(document.getElementById('profitTrendChart'), {
-      type: 'line',
-      data: {
-        labels: {{ months|tojson }},
-        datasets: [
-          { label: 'Profit', data: {{ monthly_profit|tojson }}, borderColor: 'rgba(40,167,69,0.9)', backgroundColor: 'rgba(40,167,69,0.2)', fill: true }
-        ]
+    // Responsive chart configuration
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            font: {
+              family: 'Inter',
+              size: window.innerWidth < 576 ? 10 : 12
+            },
+            padding: 10,
+            usePointStyle: true
+          }
+        }
       },
-      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
-    });
-
-    // Cumulative Balance Over Time
-    new Chart(document.getElementById('cumulativeBalanceChart'), {
-      type: 'line',
-      data: {
-        labels: {{ months|tojson }},
-        datasets: [
-          { label: 'Cumulative Balance', data: {{ cumulative_balance|tojson }}, borderColor: 'rgba(13,202,240,0.9)', backgroundColor: 'rgba(13,202,240,0.2)', fill: true }
-        ]
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0,0,0,0.05)'
+          },
+          ticks: {
+            font: {
+              size: window.innerWidth < 576 ? 10 : 12
+            }
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: {
+              size: window.innerWidth < 576 ? 10 : 12
+            }
+          }
+        }
       },
-      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
-    });
-
-    // Project-wise Income vs Expense
-    new Chart(document.getElementById('projectComparisonChart'), {
-      type: 'bar',
-      data: {
-        labels: {{ project_labels|tojson }},
-        datasets: [
-          { label: 'Income', data: {{ project_income|tojson }}, backgroundColor: 'rgba(13,202,240,0.7)' },
-          { label: 'Expense', data: {{ project_expense|tojson }}, backgroundColor: 'rgba(220,53,69,0.7)' }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'top' } },
-        indexAxis: 'y',
-        scales: { x: { beginAtZero: true } }
+      elements: {
+        bar: {
+          borderRadius: 4
+        },
+        line: {
+          tension: 0.3
+        }
       }
-    });
+    };
 
-    // Project Profit Margin %
-    new Chart(document.getElementById('projectMarginChart'), {
-      type: 'bar',
-      data: {
+    // Function to create charts with responsive options
+    function createChart(id, type, data, options) {
+      const ctx = document.getElementById(id).getContext('2d');
+      return new Chart(ctx, {
+        type: type,
+        data: data,
+        options: {
+          ...chartOptions,
+          ...options
+        }
+      });
+    }
+
+    // Create all charts after DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      // Monthly Income vs Expenses
+      createChart('incomeExpenseChart', 'bar', {
+        labels: {{ months|tojson }},
+        datasets: [
+          { 
+            label: 'Income', 
+            data: {{ monthly_income|tojson }}, 
+            backgroundColor: '#4f46e5',
+            hoverBackgroundColor: '#6366f1'
+          },
+          { 
+            label: 'Expense', 
+            data: {{ monthly_expense|tojson }}, 
+            backgroundColor: '#ef4444',
+            hoverBackgroundColor: '#f87171'
+          }
+        ]
+      });
+
+      // Monthly Profit Trend
+      createChart('profitTrendChart', 'line', {
+        labels: {{ months|tojson }},
+        datasets: [
+          { 
+            label: 'Profit', 
+            data: {{ monthly_profit|tojson }}, 
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true
+          }
+        ]
+      });
+
+      // Cumulative Balance Over Time
+      createChart('cumulativeBalanceChart', 'line', {
+        labels: {{ months|tojson }},
+        datasets: [
+          { 
+            label: 'Balance', 
+            data: {{ cumulative_balance|tojson }}, 
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true
+          }
+        ]
+      });
+
+      // Project-wise Income vs Expense
+      createChart('projectComparisonChart', 'bar', {
         labels: {{ project_labels|tojson }},
         datasets: [
-          { label: 'Profit Margin %', data: {{ project_margin|tojson }}, backgroundColor: 'rgba(40,167,69,0.7)' }
+          { 
+            label: 'Income', 
+            data: {{ project_income|tojson }}, 
+            backgroundColor: '#4f46e5'
+          },
+          { 
+            label: 'Expense', 
+            data: {{ project_expense|tojson }}, 
+            backgroundColor: '#ef4444'
+          }
         ]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, max: 100 } } }
-    });
+      }, {
+        indexAxis: 'y'
+      });
 
-    // Top 5 Profitable Projects
-    new Chart(document.getElementById('topProfitProjectsChart'), {
-      type: 'bar',
-      data: {
+      // Project Profit Margin %
+      createChart('projectMarginChart', 'bar', {
+        labels: {{ project_labels|tojson }},
+        datasets: [
+          { 
+            label: 'Margin %', 
+            data: {{ project_margin|tojson }}, 
+            backgroundColor: '#10b981'
+          }
+        ]
+      });
+
+      // Top 5 Profitable Projects
+      createChart('topProfitProjectsChart', 'bar', {
         labels: {{ top_profit_labels|tojson }},
         datasets: [
-          { label: 'Profit', data: {{ top_profit_values|tojson }}, backgroundColor: 'rgba(255,193,7,0.7)' }
+          { 
+            label: 'Profit', 
+            data: {{ top_profit_values|tojson }}, 
+            backgroundColor: '#f59e0b'
+          }
         ]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
-    });
+      });
 
-    // Category-wise Expense (Pie)
-    new Chart(document.getElementById('categoryExpenseChart'), {
-      type: 'pie',
-      data: {
+      // Category-wise Expense
+      createChart('categoryExpenseChart', 'doughnut', {
         labels: {{ category_labels|tojson }},
-        datasets: [{ data: {{ category_expense|tojson }}, backgroundColor: [
-          'rgba(13,202,240,0.7)', 'rgba(40,167,69,0.7)', 'rgba(255,193,7,0.7)', 'rgba(111,66,193,0.7)', 'rgba(255,99,132,0.7)'
-        ] }]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-    });
+        datasets: [{ 
+          data: {{ category_expense|tojson }}, 
+          backgroundColor: [
+            '#4f46e5', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'
+          ]
+        }]
+      }, {
+        cutout: '70%'
+      });
 
-    // Category Expense Trend (Stacked Bar)
-    new Chart(document.getElementById('categoryTrendChart'), {
-      type: 'bar',
-      data: {
+      // Category Expense Trend
+      createChart('categoryTrendChart', 'bar', {
         labels: {{ cat_trend_labels|tojson }},
         datasets: [
           {% for cat in cat_trend_data.keys() %}
-          { label: '{{ cat }}', data: {{ cat_trend_data[cat]|tojson }}, backgroundColor: 'rgba({{ loop.index0*50+13 }},{{ 202-loop.index0*30 }},{{ 240-loop.index0*40 }},0.7)' }{% if not loop.last %},{% endif %}
+          { 
+            label: '{{ cat }}', 
+            data: {{ cat_trend_data[cat]|tojson }}, 
+            backgroundColor: 'hsl({{ loop.index0 * 60 }}, 80%, 60%)'
+          }{% if not loop.last %},{% endif %}
           {% endfor %}
         ]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
-    });
+      }, {
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true }
+        }
+      });
 
-    // Top Vendors by Expense
-    new Chart(document.getElementById('vendorExpenseChart'), {
-      type: 'bar',
-      data: {
+      // Top Vendors by Expense
+      createChart('vendorExpenseChart', 'bar', {
         labels: {{ vendor_labels|tojson }},
         datasets: [
-          { label: 'Expense', data: {{ vendor_expense|tojson }}, backgroundColor: 'rgba(220,53,69,0.7)' }
+          { 
+            label: 'Expense', 
+            data: {{ vendor_expense|tojson }}, 
+            backgroundColor: '#ef4444'
+          }
         ]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
-    });
+      });
 
-    // Frequent Transaction Persons
-    new Chart(document.getElementById('freqPersonsChart'), {
-      type: 'bar',
-      data: {
+      // Frequent Transaction Persons
+      createChart('freqPersonsChart', 'bar', {
         labels: {{ freq_labels|tojson }},
         datasets: [
-          { label: 'Transactions', data: {{ freq_counts|tojson }}, backgroundColor: 'rgba(13,202,240,0.7)' }
+          { 
+            label: 'Transactions', 
+            data: {{ freq_counts|tojson }}, 
+            backgroundColor: '#4f46e5'
+          }
         ]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
-    });
+      });
 
-    // Unpaid Balances per Vendor
-    new Chart(document.getElementById('unpaidVendorChart'), {
-      type: 'bar',
-      data: {
+      // Unpaid Balances per Vendor
+      createChart('unpaidVendorChart', 'bar', {
         labels: {{ unpaid_labels|tojson }},
         datasets: [
-          { label: 'Unpaid Balance', data: {{ unpaid_balances|tojson }}, backgroundColor: 'rgba(255,99,132,0.7)' }
+          { 
+            label: 'Unpaid', 
+            data: {{ unpaid_balances|tojson }}, 
+            backgroundColor: '#ef4444'
+          }
         ]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+      });
+    });
+
+    // Handle window resize for chart responsiveness
+    window.addEventListener('resize', function() {
+      Chart.getChart("incomeExpenseChart")?.resize();
+      Chart.getChart("profitTrendChart")?.resize();
+      // Add all other charts here...
     });
   </script>
 </body>

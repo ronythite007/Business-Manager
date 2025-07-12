@@ -246,15 +246,23 @@
               {% if p.finalized_cost is not none and p.finalized_cost|float != 0 %}
                 <div class="mt-2 p-2 bg-light border rounded small" style="max-width:280px;">
                   <div><span class="fw-semibold">Total In:</span> ₹ {{ p.total_in | round(2) }}</div>
-                  <div><span class="fw-semibold">Total Out:</span> ₹ {{ p.total_out | round(2) }}</div>
+                  <!-- <div><span class="fw-semibold">Total Out:</span> ₹ {{ p.total_out | round(2) }}</div> -->
                   <div><span class="fw-semibold">Finalized Cost:</span> ₹ {{ p.finalized_cost | round(2) }}</div>
-                  {% set profit = (p.total_in | float) - (p.finalized_cost | float) %}
-                  {% set percent = (profit / (p.finalized_cost | float) * 100) %}
+                  {% set profit = (p.total_in | float) - (p.total_out | float) %}
+                  {% set budget_variance = (p.finalized_cost | float) - (p.total_out | float) %}
                   {% if profit >= 0 %}
-                    <div style="color: #198754;"><span class="fw-semibold">Profit:</span> ₹ {{ profit | round(2) }} <span class="text-muted">({{ percent | round(2) }}%)</span></div>
+                    <div style="color: #198754;"><span class="fw-semibold">Profit:</span> ₹ {{ profit | round(2) }}</div>
                   {% else %}
-                    <div style="color: #dc3545;"><span class="fw-semibold">Loss:</span> ₹ {{ (profit * -1) | round(2) }} <span class="text-muted">({{ percent | round(2) }}%)</span></div>
+                    <div style="color: #dc3545;"><span class="fw-semibold">Loss:</span> ₹ {{ (profit * -1) | round(2) }}</div>
                   {% endif %}
+                  <div>
+                    <span class="fw-semibold">Budget Variance:</span>
+                    {% if budget_variance >= 0 %}
+                      <span style="color: #198754;">Under Budget by ₹ {{ budget_variance | round(2) }}</span>
+                    {% else %}
+                      <span style="color: #dc3545;">Over Budget by ₹ {{ (budget_variance * -1) | round(2) }}</span>
+                    {% endif %}
+                  </div>
                 </div>
               {% endif %}
             {% else %}
