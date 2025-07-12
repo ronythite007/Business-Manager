@@ -3,3 +3,4 @@ Werkzeug
 pandas
 xhtml2pdf
 openpyxl
+flask-cors
