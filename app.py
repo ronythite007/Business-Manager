@@ -1,6 +1,7 @@
 # app.py
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from db_connection import get_sql_connection
@@ -23,7 +24,9 @@ from datetime import timedelta
 from markupsafe import Markup
 from urllib.parse import quote_plus
 
+
 app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 app.secret_key = 'your_secret_key_here'  # Set a strong secret key for session management
 
@@ -654,8 +657,8 @@ def dashboard():
     agreed_cost = cursor.fetchone()['agreed_cost'] or 0
     agreed_cost = float(agreed_cost)
 
-    # Profit/Loss (income - expense - agreed cost)
-    profit_loss = total_in - total_out - agreed_cost
+    # Profit/Loss (income - expense)
+    profit_loss = total_in - total_out
 
     # Monthly income/expense/profit (last 12 months)
     cursor.execute("""
@@ -1092,6 +1095,25 @@ def api_projects():
     projects = cursor.fetchall()
     cursor.close()
     return jsonify(projects)
+
+@app.route('/api/contact', methods=['POST'])
+def api_contact():
+    data = request.get_json()
+    name = data.get('name')
+    email = data.get('email')
+    company = data.get('company')
+    subject = data.get('subject')
+    message = data.get('message')
+    # Save to contact_messages table
+    conn = get_sql_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO contact_messages (name, email, company, subject, message, created_at)
+        VALUES (%s, %s, %s, %s, %s, NOW())
+    """, (name, email, company, subject, message))
+    conn.commit()
+    cursor.close()
+    return jsonify({'success': True, 'message': 'Thank you for contacting us! We will get back to you soon.'}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
