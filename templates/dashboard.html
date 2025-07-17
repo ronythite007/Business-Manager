@@ -503,17 +503,17 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Monthly Income vs Expenses
       createChart('incomeExpenseChart', 'bar', {
-        labels: {{ months|tojson }},
+        labels: {{ (months or [])|tojson|safe }},
         datasets: [
           { 
             label: 'Income', 
-            data: {{ monthly_income|tojson }}, 
+            data: {{ (monthly_income or [])|tojson|safe }}, 
             backgroundColor: '#4f46e5',
             hoverBackgroundColor: '#6366f1'
           },
           { 
             label: 'Expense', 
-            data: {{ monthly_expense|tojson }}, 
+            data: {{ (monthly_expense or [])|tojson|safe }}, 
             backgroundColor: '#ef4444',
             hoverBackgroundColor: '#f87171'
           }
@@ -522,11 +522,11 @@
 
       // Monthly Profit Trend
       createChart('profitTrendChart', 'line', {
-        labels: {{ months|tojson }},
+        labels: {{ (months or [])|tojson|safe }},
         datasets: [
           { 
             label: 'Profit', 
-            data: {{ monthly_profit|tojson }}, 
+            data: {{ (monthly_profit or [])|tojson|safe }}, 
             borderColor: '#10b981',
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
             fill: true
@@ -536,11 +536,11 @@
 
       // Cumulative Balance Over Time
       createChart('cumulativeBalanceChart', 'line', {
-        labels: {{ months|tojson }},
+        labels: {{ (months or [])|tojson|safe }},
         datasets: [
           { 
             label: 'Balance', 
-            data: {{ cumulative_balance|tojson }}, 
+            data: {{ (cumulative_balance or [])|tojson|safe }}, 
             borderColor: '#3b82f6',
             backgroundColor: 'rgba(59, 130, 246, 0.1)',
             fill: true
@@ -550,16 +550,16 @@
 
       // Project-wise Income vs Expense
       createChart('projectComparisonChart', 'bar', {
-        labels: {{ project_labels|tojson }},
+        labels: {{ (project_labels or [])|tojson|safe }},
         datasets: [
           { 
             label: 'Income', 
-            data: {{ project_income|tojson }}, 
+            data: {{ (project_income or [])|tojson|safe }}, 
             backgroundColor: '#4f46e5'
           },
           { 
             label: 'Expense', 
-            data: {{ project_expense|tojson }}, 
+            data: {{ (project_expense or [])|tojson|safe }}, 
             backgroundColor: '#ef4444'
           }
         ]
@@ -569,11 +569,11 @@
 
       // Project Profit Margin %
       createChart('projectMarginChart', 'bar', {
-        labels: {{ project_labels|tojson }},
+        labels: {{ (project_labels or [])|tojson|safe }},
         datasets: [
           { 
             label: 'Margin %', 
-            data: {{ project_margin|tojson }}, 
+            data: {{ (project_margin or [])|tojson|safe }}, 
             backgroundColor: '#10b981'
           }
         ]
@@ -581,11 +581,11 @@
 
       // Top 5 Profitable Projects
       createChart('topProfitProjectsChart', 'bar', {
-        labels: {{ top_profit_labels|tojson }},
+        labels: {{ (top_profit_labels or [])|tojson|safe }},
         datasets: [
           { 
             label: 'Profit', 
-            data: {{ top_profit_values|tojson }}, 
+            data: {{ (top_profit_values or [])|tojson|safe }}, 
             backgroundColor: '#f59e0b'
           }
         ]
@@ -593,9 +593,9 @@
 
       // Category-wise Expense
       createChart('categoryExpenseChart', 'doughnut', {
-        labels: {{ category_labels|tojson }},
+        labels: {{ (category_labels or [])|tojson|safe }},
         datasets: [{ 
-          data: {{ category_expense|tojson }}, 
+          data: {{ (category_expense or [])|tojson|safe }}, 
           backgroundColor: [
             '#4f46e5', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'
           ]
@@ -606,12 +606,12 @@
 
       // Category Expense Trend
       createChart('categoryTrendChart', 'bar', {
-        labels: {{ cat_trend_labels|tojson }},
+        labels: {{ (cat_trend_labels or [])|tojson|safe }},
         datasets: [
           {% for cat in cat_trend_data.keys() %}
           { 
-            label: '{{ cat }}', 
-            data: {{ cat_trend_data[cat]|tojson }}, 
+            label: {{ cat|tojson|safe }}, 
+            data: {{ (cat_trend_data[cat] or [])|tojson|safe }}, 
             backgroundColor: 'hsl({{ loop.index0 * 60 }}, 80%, 60%)'
           }{% if not loop.last %},{% endif %}
           {% endfor %}
@@ -625,11 +625,11 @@
 
       // Top Vendors by Expense
       createChart('vendorExpenseChart', 'bar', {
-        labels: {{ vendor_labels|tojson }},
+        labels: {{ (vendor_labels or [])|tojson|safe }},
         datasets: [
           { 
             label: 'Expense', 
-            data: {{ vendor_expense|tojson }}, 
+            data: {{ (vendor_expense or [])|tojson|safe }}, 
             backgroundColor: '#ef4444'
           }
         ]
@@ -637,11 +637,11 @@
 
       // Frequent Transaction Persons
       createChart('freqPersonsChart', 'bar', {
-        labels: {{ freq_labels|tojson }},
+        labels: {{ (freq_labels or [])|tojson|safe }},
         datasets: [
           { 
             label: 'Transactions', 
-            data: {{ freq_counts|tojson }}, 
+            data: {{ (freq_counts or [])|tojson|safe }}, 
             backgroundColor: '#4f46e5'
           }
         ]
@@ -649,11 +649,11 @@
 
       // Unpaid Balances per Vendor
       createChart('unpaidVendorChart', 'bar', {
-        labels: {{ unpaid_labels|tojson }},
+        labels: {{ (unpaid_labels or [])|tojson|safe }},
         datasets: [
           { 
             label: 'Unpaid', 
-            data: {{ unpaid_balances|tojson }}, 
+            data: {{ (unpaid_balances or [])|tojson|safe }}, 
             backgroundColor: '#ef4444'
           }
         ]
