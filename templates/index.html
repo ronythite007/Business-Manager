@@ -130,6 +130,83 @@
         justify-content: flex-start;
       }
     }
+    /* Chatbot custom colors */
+    #chatbot-fab button {
+      background: #6847d9;
+      color: #fff;
+      border: none;
+    }
+    #chatbot-fab button:hover {
+      background: #382b6c;
+    }
+    #chatbot-section {
+      border: 2px solid #6847d9;
+      box-shadow: 0 8px 32px rgba(104,71,217,0.18);
+    }
+    #chatbot-section .chatbot-header {
+      background: #382b6c;
+      color: #fff;
+      padding: 1rem;
+      border-top-left-radius: 1rem;
+      border-top-right-radius: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #chatbot-messages {
+      height: 300px;
+      overflow-y: auto;
+      padding: 1rem;
+      background: #f7f9fc;
+    }
+    .chat-msg-user {
+      background: #ebeaea;
+      color: #382b6c;
+      border-radius: 1rem 1rem 0 1rem;
+      padding: 0.5rem 1rem;
+      margin-bottom: 8px;
+      max-width: 80%;
+      margin-left: auto;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(254,192,78,0.08);
+    }
+    .chat-msg-ai {
+      background: #fcfcfc;
+      color: #fff;
+      border-radius: 1rem 1rem 1rem 0;
+      padding: 0.5rem 1rem;
+      margin-bottom: 8px;
+      max-width: 80%;
+      margin-right: auto;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(226,124,105,0.08);
+    }
+    #chatbot-form {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem;
+      border-top: 1px solid #eee;
+      background: #fff;
+    }
+    #chatbot-form button {
+      background: #3e9fd5;
+      border: none;
+      color: #fff;
+    }
+    #chatbot-form button:hover {
+      background: #382b6c;
+    }
+    #chatbot-form input[type="text"] {
+      background: #f3f3f3;
+      color: #382b6c;
+      border: 1px solid #e0e0e0;
+    }
+    #chatbot-form input[type="text"]:focus {
+      background: #fff;
+      border-color: #6847d9;
+      outline: none;
+      color: #382b6c;
+    }
   </style>
 </head>
 <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -281,6 +358,48 @@
     {% endfor %}
   </div>
 
+  <div id="chatbot-fab" style="position: fixed; bottom: 32px; right: 32px; z-index: 1050;">
+    <button id="open-chatbot" class="btn btn-primary rounded-circle shadow" style="width:60px; height:60px; font-size:2rem; display:flex; align-items:center; justify-content:center; background:#6847d9; color:#fff; border:none;">
+      <i class="bi bi-robot"></i>
+    </button>
+  </div>
+  <div id="chatbot-section" style="display:none; position: fixed; bottom: 100px; right: 32px; width: 350px; max-width: 95vw; background: #fff; border-radius: 1rem; box-shadow: 0 8px 32px rgba(104,71,217,0.18); z-index: 1060; overflow: hidden; border:2px solid #6847d9;">
+    <div class="chatbot-header">
+      <span><i class="bi bi-robot"></i> InOutBook AI</span>
+    </div>
+    <div id="chatbot-messages" style="height: 300px; overflow-y: auto; padding: 1rem; background: #f7f9fc;"></div>
+    <form id="chatbot-form" style="display: flex; gap: 0.5rem; padding: 1rem; border-top: 1px solid #eee; background: #fff;">
+      <input type="text" id="chatbot-input" class="form-control" placeholder="Ask me anything..." autocomplete="off" required />
+      <button type="submit" class="btn" style="background:#3e9fd5; color:#fff;"><i class="bi bi-send"></i></button>
+    </form>
+  </div>
+  <script>
+    // Chatbot open/close logic (toggle)
+    document.getElementById('open-chatbot').onclick = function() {
+      var section = document.getElementById('chatbot-section');
+      if (section.style.display === 'block') {
+        section.style.display = 'none';
+      } else {
+        section.style.display = 'block';
+      }
+    };
+    // Chat logic with color classes
+    document.getElementById('chatbot-form').onsubmit = function(e) {
+      e.preventDefault();
+      var input = document.getElementById('chatbot-input');
+      var msg = input.value.trim();
+      if (!msg) return;
+      var messages = document.getElementById('chatbot-messages');
+      messages.innerHTML += `<div class='chat-msg-user'>${msg}</div>`;
+      input.value = '';
+      messages.scrollTop = messages.scrollHeight;
+      // TODO: AJAX call to backend for AI response
+      setTimeout(function() {
+        messages.innerHTML += `<div class='chat-msg-ai'>[AI response here]</div>`;
+        messages.scrollTop = messages.scrollHeight;
+      }, 800);
+    };
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
